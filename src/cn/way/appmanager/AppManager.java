@@ -2,6 +2,7 @@ package cn.way.appmanager;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
@@ -29,11 +30,7 @@ public class AppManager {
 	public DownloadTask startDownloadTask(){
 		return null;
 	}
-	public static void installAPK(Activity parentActivity,String fileName){
-		Intent intent = new Intent(Intent.ACTION_VIEW); 
-		intent.setDataAndType(Uri.fromFile(new File(fileName)), "application/vnd.android.package-archive"); 
-		parentActivity.startActivity(intent);
-	}
+	
 	public static ResolveInfo isAppInstalled(Context context,String packageName){
 		PackageManager packageManager = context.getPackageManager();
 		PackageInfo pi = null;
@@ -51,6 +48,52 @@ public class AppManager {
 		ResolveInfo ri = apps.iterator().next();
 		return ri;
 	}
+    public static ArrayList<ApplicationInfo> loadApplications(Context context) {
+
+        PackageManager manager = context.getPackageManager();
+
+        Intent mainIntent = new Intent(Intent.ACTION_MAIN, null);
+        mainIntent.addCategory(Intent.CATEGORY_LAUNCHER);
+
+        final List<ResolveInfo> apps = manager.queryIntentActivities(mainIntent, 0);
+        Collections.sort(apps, new ResolveInfo.DisplayNameComparator(manager));
+        
+        ArrayList<ApplicationInfo> mApplications = null;
+        if (apps != null) {
+            final int count = apps.size();
+
+            mApplications = new ArrayList<ApplicationInfo>(count);
+            
+            for (int i = 0; i < count; i++) {
+                ApplicationInfo application = new ApplicationInfo();
+                ResolveInfo info = apps.get(i);
+
+                application.title = info.loadLabel(manager);
+                application.setActivity(new ComponentName(
+                        info.activityInfo.applicationInfo.packageName,
+                        info.activityInfo.name),
+                        Intent.FLAG_ACTIVITY_NEW_TASK
+                        | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
+                application.icon = info.activityInfo.loadIcon(manager);
+
+                mApplications.add(application);
+            }
+        }
+        return mApplications;
+    }
+	public static void installApp(Activity parentActivity,String fileName){
+		Intent intent = new Intent(Intent.ACTION_VIEW); 
+		intent.setDataAndType(Uri.fromFile(new File(fileName)), "application/vnd.android.package-archive"); 
+		parentActivity.startActivity(intent);
+	}
+	/**
+	 * @param packageName
+	 * @param context
+	 */
+	public static boolean openApp(Context context,String packageName) {
+		ResolveInfo ri = isAppInstalled(context, packageName);
+		return openApp(context, packageName,ri);
+	}
 	/**
 	 * @param packageName
 	 * @param context
@@ -61,7 +104,8 @@ public class AppManager {
 
 			Intent intent = new Intent(Intent.ACTION_MAIN);
 			intent.addCategory(Intent.CATEGORY_LAUNCHER);
-
+			intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+                        | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
 			ComponentName cn = new ComponentName(packageName, activityName);
 			intent.setComponent(cn);
 			
