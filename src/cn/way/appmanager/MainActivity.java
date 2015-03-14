@@ -1,17 +1,16 @@
 package cn.way.appmanager;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.IOException;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.InputStream;
 
 import org.apache.http.Header;
 import org.apache.http.HttpResponse;
+import org.json.JSONArray;
 import org.json.JSONException;
-import org.json.JSONObject;
 
 import android.app.Activity;
-import android.content.res.Resources.NotFoundException;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -23,6 +22,7 @@ import cn.way.wandroid.utils.Delayer;
 import cn.way.wandroid.utils.IOUtils;
 import cn.way.wandroid.utils.OtherUtils;
 
+import com.google.gson.Gson;
 import com.loopj.android.http.AsyncHttpClient;
 import com.loopj.android.http.FileAsyncHttpResponseHandler;
 import com.loopj.android.http.RangeFileAsyncHttpResponseHandler;
@@ -56,18 +56,35 @@ public class MainActivity extends Activity {
 					String str = IOUtils.readString(in);
 					if (str!=null) {
 						try {
-							JSONObject jo = new JSONObject(str);
+							JSONArray jo = new JSONArray(str);
 							Log.d("test", jo.toString());
-							jo.put("newKey", "newValue");
+							Gson gson = new Gson();
+							for (int i = 0; i < jo.length(); i++) {
+								SigninPrize prize = gson.fromJson(jo.getJSONObject(i).toString(), SigninPrize.class);
+								Log.d("test", "prize = "+prize);
+//								Log.d("test", jo.getJSONObject(i).toString());
+							}
+							File signinPrizesFile = new File(getExternalFilesDir(null), "signin_prizes.js");
+							Log.d("test", "dir = "+signinPrizesFile.getAbsolutePath());
+//							IOUtils.saveData(str.getBytes(), signinPrizesFile);
 							try {
-								IOUtils.writeI2O(new ByteArrayInputStream(jo.toString().getBytes()), getResources().openRawResourceFd(R.raw.signin_prizes).createOutputStream(), 1024);
-							} catch (NotFoundException e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-							} catch (IOException e) {
+								str = IOUtils.readString(new FileInputStream(signinPrizesFile));
+								jo = new JSONArray(str);
+								Log.d("test", "read:" +jo.toString());
+							} catch (FileNotFoundException e) {
 								// TODO Auto-generated catch block
 								e.printStackTrace();
 							}
+//							jo.put("newKey", "newV alue");
+//							try {
+//								IOUtils.writeI2O(new ByteArrayInputStream(jo.toString().getBytes()), getResources().openRawResourceFd(R.raw.signin_prizes).createOutputStream(), 1024);
+//							} catch (NotFoundException e) {
+//								// TODO Auto-generated catch block
+//								e.printStackTrace();
+//							} catch (IOException e) {
+//								// TODO Auto-generated catch block
+//								e.printStackTrace();
+//							}
 						} catch (JSONException e) {
 							e.printStackTrace();
 						}
@@ -260,4 +277,25 @@ public class MainActivity extends Activity {
 //			this.delayInterval = delayInterval;
 //		}
 //	}
+	class SigninPrize {
+		int ID;
+		int DayNum;
+		int Category;
+		int ItemConfigID;
+		int ItemCount;
+		int IsHot;
+		int IsNew;
+		String Remark;
+		String PicUrl;
+		String ItemName;
+		@Override
+		public String toString() {
+			return "SigninPrize [ID=" + ID + ", DayNum=" + DayNum
+					+ ", Category=" + Category + ", ItemConfigID="
+					+ ItemConfigID + ", ItemCount=" + ItemCount + ", IsHot="
+					+ IsHot + ", IsNew=" + IsNew + ", Remark=" + Remark
+					+ ", PicUrl=" + PicUrl + ", ItemName=" + ItemName + "]";
+		}
+		
+	}
 }
