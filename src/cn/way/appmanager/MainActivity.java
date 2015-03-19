@@ -6,7 +6,6 @@ import java.io.FileNotFoundException;
 import java.io.InputStream;
 
 import org.apache.http.Header;
-import org.apache.http.HttpResponse;
 import org.json.JSONArray;
 import org.json.JSONException;
 
@@ -16,31 +15,23 @@ import android.util.Log;
 import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.Toast;
+import cn.way.appmanager.DownloadTask.Listener;
 import cn.way.wandroid.toast.Toaster;
 import cn.way.wandroid.utils.Delayer;
 import cn.way.wandroid.utils.IOUtils;
-import cn.way.wandroid.utils.OtherUtils;
 
 import com.google.gson.Gson;
-import com.loopj.android.http.AsyncHttpClient;
-import com.loopj.android.http.FileAsyncHttpResponseHandler;
-import com.loopj.android.http.RangeFileAsyncHttpResponseHandler;
-import com.loopj.android.http.RequestHandle;
-import com.loopj.android.http.ResponseHandlerInterface;
 
 public class MainActivity extends Activity {
-	private RequestHandle rh ;
-	private int dataSize;
+	private DownloadTask dt ;
 	private ProgressBar pb;
 	private File downloadedFile ;
 	private TextView tv;
-	int data2Second = 0;
 	String filename;
 	@Override
 	protected void onStop() {
 		super.onStop();
-		if(rh!=null)rh.cancel(true);
+		if(dt!=null)dt.stop();
 	}
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -91,141 +82,59 @@ public class MainActivity extends Activity {
 						
 					}
 				}
-				if (true) {
-					return;
-				}
+//				if (true) {
+//					return;
+//				}
 				sync();
 				if (downloadedFile!=null) {
 					downloadedFile.delete();
 				}
-				AppManager.openApp(getApplicationContext(), "com.yaoji.yaoprize");
+//				AppManager.openApp(getApplicationContext(), "com.yaoji.yaoprize");
 			}
 		});
-		if (true) {
-			return;
-		}
-		String url = "https://raw.githubusercontent.com/Trinea/trinea-download/master/slide-expandable-listView-demo.apk";
+//		if (true) {
+//			return;
+//		}
+//		String url = "https://raw.githubusercontent.com/Trinea/trinea-download/master/slide-expandable-listView-demo.apk";
 //		String url = "http://download.ydstatic.com/notewebsite/downloads/YNote.exe";
+		String url = "http://www.91yaojiang.com/ddz/yjddz.apk";
 		filename = "file.apk";
 		//TODO 存储空间不足
 		downloadedFile = new File(getExternalCacheDir(), filename);
 		Log.d("test", "downloadedFile:"+downloadedFile.toString()+"  "+downloadedFile.length());
-		fullDownload(url,downloadedFile);
-		if (true) {
-			return;
-		}
-		final Delayer mDelayer = new Delayer(1000);
-		final AsyncHttpClient client = new AsyncHttpClient();
-	
-		rh = client.get(this,url, new RangeFileAsyncHttpResponseHandler(downloadedFile) {
-			
+		dt = new DownloadTask(getApplicationContext(), url, downloadedFile, new Listener() {
 			@Override
-			public void onProgress(int bytesWritten, int totalSize) {
-				super.onProgress(bytesWritten, totalSize);
-				
-				if (mDelayer.getWaitingTime()==0) {
-					int data1Sec = bytesWritten - dataSize;
-					data2Second = data1Sec;
-					dataSize = bytesWritten;
-					Log.d("test-----", bytesWritten+"/"+totalSize+"speed:"+data1Sec);
+			public void onProgress(int bytesWritten, int totalSize, int progress,
+					int bytesPerSec, int duration) {
+				int s = duration%60;
+				int m = duration/60%60;
+				int h = duration/60/60%60;
+				float speed = bytesPerSec;
+				if (speed>=1024*1000) {//>=1024*1000B/s
+					speed = bytesPerSec/1024.0f/1024.0f;
+					tv.setText(String.format("%.1f/%.1f   %d%%    %.1fM/s %02d:%02d:%02d",bytesWritten/1024.0/1024.0,totalSize/1024.0/1024.0,progress, speed,h,m,s));
+				}else if(speed>=1000&&speed <1000*1024){//<1000B/s
+					speed = bytesPerSec/1024.0f;
+					tv.setText(String.format("%.1f/%.1f   %d%%    %.0fK/s %02d:%02d:%02d",bytesWritten/1024.0/1024.0,totalSize/1024.0/1024.0,progress, speed,h,m,s));
+				}else if(speed<1000){
+					tv.setText(String.format("%.1f/%.1f   %d%%    %.0fB/s %02d:%02d:%02d",bytesWritten/1024.0/1024.0,totalSize/1024.0/1024.0,progress, speed,h ,m,s));
 				}
-				int progress = (int)(bytesWritten/(float)totalSize*100);
-				tv.setText(String.format("%.1f/%.1f   %d%%    %.1fM/s",bytesWritten/1024.0/1024.0,totalSize/1024.0/1024.0,progress, data2Second/1024.0/1024.0));
 				pb.setProgress(progress);
-				if (bytesWritten/(float)totalSize>=0.1) {
-//					Log.d("test-----", bytesWritten+"/"+totalSize);
-//					rh.cancel(true);
-				}else{
-//					Log.d("test", bytesWritten+"/"+totalSize);
-				}
+			}
+			@Override
+			public void onSuccess(int statusCode, Header[] headers, File response) {
+				
 			}
 			
-		    @Override
-		    public void onSuccess(int statusCode, Header[] headers, File response) {
-		    	Log.d("test", "success :"+response.toString());
-		    }
 			@Override
-			public void onFailure(int arg0, Header[] arg1, Throwable arg2,
-					File arg3) {
-				Log.d("test", "failure");
-			}
-			@Override
-			public void onPreProcessResponse(ResponseHandlerInterface instance,
-					HttpResponse response) {
-				super.onPreProcessResponse(instance, response);
-				for (Header h : response.getAllHeaders()) {
-					Log.d("test","###"+ h.getName()+" = "+h.getValue());
-				}
-				String filename = OtherUtils.getFileNameFromHttpResponse(response);
-				if (filename!=null) {
-					MainActivity.this.filename = filename;
-					Toast.makeText(getApplicationContext(), filename, 0).show();
-					downloadedFile.renameTo(new File(getExternalCacheDir(), filename));
-				}
+			public void onFailure(int statusCode, Header[] headers,
+					Throwable throwable, File file) {
+				
 			}
 		});
+		dt.start();
 	}
 
-	private void fullDownload(String url,final File downloadedFile){
-		final long speedCheckingInterval = 10;
-		final long startTime = System.currentTimeMillis();
-		final Delayer mDelayer = new Delayer(speedCheckingInterval);
-		AsyncHttpClient client = new AsyncHttpClient();
-		rh = client.get(url, new FileAsyncHttpResponseHandler(downloadedFile,false) {
-			@Override
-			public void onProgress(int bytesWritten, int totalSize) {
-				super.onProgress(bytesWritten, totalSize);
-				
-				if (mDelayer.getWaitingTime()==0) {
-					int data1Sec = bytesWritten - dataSize;
-					data2Second = data1Sec;
-					dataSize = bytesWritten;
-					Log.d("test-----", bytesWritten+"/"+totalSize+"speed:"+data1Sec);
-				}
-				int progress = (int)(bytesWritten/(float)totalSize*100);
-				int timeSec = (int) ((System.currentTimeMillis()-startTime)/1000.0);
-				tv.setText(String.format("%.1f/%.1f   %d%%    %.1fM/s  time:%d",bytesWritten/1024.0/1024.0,totalSize/1024.0/1024.0,progress, data2Second/1024.0/1024.0*(1000/speedCheckingInterval),timeSec));
-				pb.setProgress(progress);
-				if (bytesWritten/(float)totalSize>=0.1) {
-//					Log.d("test-----", bytesWritten+"/"+totalSize);
-//					rh.cancel(true);
-				}else{
-					Log.d("test", bytesWritten+"/"+totalSize);
-				}
-			}
-		    @Override
-		    public void onSuccess(int statusCode, Header[] headers, File response) {
-		    	Log.d("test", "success :"+response.toString());
-		    	AppManager.installApp(MainActivity.this, downloadedFile.getAbsolutePath());
-		    }
-			@Override
-			public void onFailure(int arg0, Header[] arg1, Throwable arg2,
-					File arg3) {
-				Log.d("test", "failure");
-			}
-		});
-	}
-	public boolean isSupportRange(final HttpResponse response) {
-        if (response == null) return false;
-        
-        Header header = response.getFirstHeader(AsyncHttpClient.HEADER_CONTENT_RANGE);
-        if (header == null) {
-            return false;
-        } else {
-        	Log.v("test", AsyncHttpClient.HEADER_CONTENT_RANGE + ": " + header.getValue());
-        	return true;
-        }
-//        Header header = response.getFirstHeader("Accept-Ranges");
-//        if (header != null) {
-//            return "bytes".equals(header.getValue());
-//        }
-//        header = response.getFirstHeader("Content-Range");
-//        if (header != null) {
-//            String value = header.getValue();
-//            return value != null && value.startsWith("bytes");
-//        }
-//        return false;
-    }
 	private Delayer delayer = new Delayer(5*1000);
 	private void sync(){
 		long waitingTime = delayer.getWaitingTime();
@@ -249,34 +158,7 @@ public class MainActivity extends Activity {
 		lastUpdateTime = cTime;
 		Toaster.instance(this).setup("OK!!!").show();
 	}
-//	static class Delayer {
-//		private long delayInterval = 30;
-//		public Delayer(long delayInterval) {
-//			super();
-//			this.delayInterval = delayInterval;
-//		}
-//		private static long lastTimeupTime = 0;
-//		/**
-//		 * @return 剩余延迟时间（毫秒），为0则表示延迟时间到了。否返回还要等待的毫秒数
-//		 */
-//		public long getWaitingTime(){
-//			long cTime = System.currentTimeMillis();
-//			if (lastTimeupTime>0) {
-//				long tPass = cTime - lastTimeupTime;
-//				if (tPass<delayInterval) {
-//					return delayInterval - tPass;
-//				}
-//			}
-//			lastTimeupTime = cTime;
-//			return 0;
-//		}
-//		public long getDelayInterval() {
-//			return delayInterval;
-//		}
-//		public void setDelayInterval(long delayInterval) {
-//			this.delayInterval = delayInterval;
-//		}
-//	}
+
 	class SigninPrize {
 		int ID;
 		int DayNum;

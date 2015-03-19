@@ -8,5 +8,6 @@
 	"IsNew" : 1,
 	"Remark" : "fdfefefdaf",
 	"PicUrl" : "http://testimg.91yaojiang.com/Items/quanguohuafei1_2.png",
-	"ItemName" : "全国通用1元话费"
+	"ItemName" : "全国通用1元话费",
+	"Date" : "这个是多出来的属性，在对象中没有通过GSON来映射"
 } ]

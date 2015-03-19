@@ -21,12 +21,7 @@ import android.net.Uri;
  * @2015年3月9日
  */
 public class AppManager {
-	private HashMap<String, DownloadTask> downloadTasks = new HashMap<String, AppManager.DownloadTask>();
-	public static class DownloadTask{
-		private Context context;
-		private String url;
-		
-	}
+	private HashMap<String, DownloadTask> downloadTasks = new HashMap<String, DownloadTask>();
 	public DownloadTask startDownloadTask(){
 		return null;
 	}
