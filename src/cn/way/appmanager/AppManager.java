@@ -3,7 +3,6 @@ package cn.way.appmanager;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 
 import android.app.Activity;
@@ -12,8 +11,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
-import android.content.pm.ResolveInfo;
 import android.content.pm.PackageManager.NameNotFoundException;
+import android.content.pm.ResolveInfo;
 import android.net.Uri;
 
 /**
@@ -21,11 +20,6 @@ import android.net.Uri;
  * @2015年3月9日
  */
 public class AppManager {
-	private HashMap<String, DownloadTask> downloadTasks = new HashMap<String, DownloadTask>();
-	public DownloadTask startDownloadTask(){
-		return null;
-	}
-	
 	public static ResolveInfo isAppInstalled(Context context,String packageName){
 		PackageManager packageManager = context.getPackageManager();
 		PackageInfo pi = null;
@@ -76,9 +70,12 @@ public class AppManager {
         }
         return mApplications;
     }
-	public static void installApp(Activity parentActivity,String fileName){
+	public static void installApp(Activity parentActivity,File file){
+		if (parentActivity==null||(file==null||!file.exists())) {
+			return;
+		}
 		Intent intent = new Intent(Intent.ACTION_VIEW); 
-		intent.setDataAndType(Uri.fromFile(new File(fileName)), "application/vnd.android.package-archive"); 
+		intent.setDataAndType(Uri.fromFile(file), "application/vnd.android.package-archive"); 
 		parentActivity.startActivity(intent);
 	}
 	/**

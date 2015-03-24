@@ -8,15 +8,20 @@ package cn.way.wandroid.utils;
  */
 public class Delayer {
 	private long delayInterval = 30;
+	private boolean invalid;//是否无效，true则getWaitingTime()直接返回0
 	public Delayer(long delayInterval) {
 		super();
 		this.delayInterval = delayInterval;
+		reset();
 	}
-	private static long lastTimeupTime = 0;
+	private long lastTimeupTime = 0;
 	/**
 	 * @return 剩余延迟时间（毫秒），为0则表示延迟时间到了。否返回还要等待的毫秒数
 	 */
 	public long getWaitingTime(){
+		if (invalid) {
+			return 0;
+		}
 		long cTime = System.currentTimeMillis();
 		if (lastTimeupTime>0) {
 			long tPass = cTime - lastTimeupTime;
@@ -32,5 +37,15 @@ public class Delayer {
 	}
 	public void setDelayInterval(long delayInterval) {
 		this.delayInterval = delayInterval;
+	}
+	public void reset(){
+		lastTimeupTime = 0;
+	}
+	public boolean isInvalid() {
+		return invalid;
+	}
+	public void setInvalid(boolean invalid) {
+		this.invalid = invalid;
+		reset();
 	}
 }

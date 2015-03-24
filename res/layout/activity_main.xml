@@ -2,21 +2,58 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="cn.way.appmanager.MainActivity" 
+    android:layout_margin="20dp"
     android:orientation="vertical"
-    android:layout_margin="20dp">
+    tools:context="cn.way.appmanager.MainActivity" >
 
-    <Button android:id="@+id/aBtn"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/hello_world" />
-
-    <ProgressBar android:id="@+id/progressBar"
+    <ProgressBar
+        android:id="@+id/progressBar"
         style="?android:attr/progressBarStyleHorizontal"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
-	<TextView android:id="@+id/infoTV" 
-	    android:layout_width="match_parent"
-	    android:layout_height="30dp"
-	    android:gravity="center_vertical" />
+        android:layout_height="10dp" />
+
+    <TextView
+        android:id="@+id/infoTV"
+        android:layout_width="match_parent"
+        android:layout_height="30dp"
+        android:gravity="center_vertical" />
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" >
+
+        <Button
+            android:id="@+id/controlBtn"
+            android:layout_width="80dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="left"
+            android:text="START" />
+
+        <Button
+            android:id="@+id/installBtn"
+            android:layout_width="80dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="INSTALL" />
+
+        <Button
+            android:id="@+id/delBtn"
+            android:layout_width="80dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="right"
+            android:text="DEL FILE" />
+    </FrameLayout>
+
+    <EditText android:id="@+id/packageNameET"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="com.yaoji.yaoprize" />
+
+    <Button
+        android:id="@+id/openBtn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:text="OPEN" />
+
 </LinearLayout>
