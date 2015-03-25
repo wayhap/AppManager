@@ -1,6 +1,9 @@
 package cn.way.appmanager;
 
-import java.util.HashMap;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 
 import android.app.Service;
 import android.content.BroadcastReceiver;
@@ -11,6 +14,8 @@ import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.os.Binder;
 import android.os.IBinder;
+import android.util.Base64;
+import cn.way.appmanager.DownloadTask.Listener;
 import cn.way.wandroid.utils.AsyncTimer;
 import cn.way.wandroid.utils.WLog;
 
@@ -20,30 +25,44 @@ import cn.way.wandroid.utils.WLog;
  */
 public class DownloadService extends Service {
 	private String className = getClass().getSimpleName();
-	AsyncTimer timer;
+	private AsyncTimer timer;
 	@Override
 	public void onCreate() {
 		super.onCreate();
 		WLog.d(className +"=====onCreate=====");
-		timer = new AsyncTimer() {
-			@Override
-			protected void onTimeGoesBy(long totalTimeLength) {
-				if(totalTimeLength>=1000l*5){
-					this.cancel();
-					this.schedule(2000l, 1000l*6, 1000l*1);
-				}
-				WLog.d("totalTimeLength= "+totalTimeLength);
-				DownloadService.broadcastUpdate(getApplicationContext(),Action.TEST);
-			}
-		}; 
-		timer.schedule(1000l, 1000l*10, null);
+		startUpdateTimer();
 	}
 	@Override
 	public void onDestroy() {
 		super.onDestroy();
+		WLog.d(className +"=====onDestroy=====");
+		if (!downloadTasks.isEmpty()) {
+			Iterator<DownloadTask> tasksIterator = downloadTasks.values().iterator();
+			while (tasksIterator.hasNext()) {
+				DownloadTask task = tasksIterator.next();
+				task.stop();
+			}
+		}
+		stopUpdateTimer();
+	}
+	private void stopUpdateTimer(){
 		if (timer!=null) {
 			timer.cancel();
 		}
+	}
+	private void startUpdateTimer(){
+		if (timer==null) {
+			timer = new AsyncTimer() {
+				@Override
+				protected void onTimeGoesBy(long totalTimeLength) {
+					if (!getDownloadTasks().isEmpty()) {
+						WLog.d(className +"=====broadcastUpdate=====");
+						DownloadService.broadcastUpdate(getApplicationContext(),Action.UPDATE,null);
+					}
+				}
+			};
+		}
+		timer.schedule(1000l, null, null);
 	}
 	public static abstract class DownloadServiceConnection implements
 			ServiceConnection {
@@ -54,6 +73,7 @@ public class DownloadService extends Service {
 		@Override
 		public void onServiceConnected(ComponentName componentName,
 				IBinder service) {
+			WLog.d("=====onServiceConnected=====");
 			downloadService = ((DownloadService.LocalBinder) service)
 					.getService();
 			onServiceConnected(downloadService);
@@ -63,48 +83,58 @@ public class DownloadService extends Service {
 
 		@Override
 		public void onServiceDisconnected(ComponentName componentName) {
+			WLog.d("=====onServiceDisconnected=====");
 			onServiceConnected(downloadService);
 		}
 	};
-	public static class DownloadBroadcastReceiver extends BroadcastReceiver{
+	public static abstract class DownloadBroadcastReceiver extends BroadcastReceiver{
+		public abstract void onUpdate();
 		@Override
 		public void onReceive(Context context, Intent intent) {
 			String actionName = intent.getStringExtra(EXTRA_ACTION_NAME);
-			if (actionName.equals(Action.TEST.toString())) {
-				
+//			DownloadInfo dt = (DownloadInfo) intent.getSerializableExtra(EXTRA_DT);
+			if (actionName.equals(Action.UPDATE.toString())) {
+//				WLog.d("DownloadBroadcastReceiver= "+dt.getBytesWritten());
+//				WLog.d("DownloadBroadcastReceiver= "+actionName);
+//				WLog.d("DownloadBroadcastReceiver= "+((File)intent.getSerializableExtra(EXTRA_DT)).getName());
+				onUpdate();
 			}
 		}
 	}
-	private static void broadcastUpdate(Context context ,Action action) {
-        final Intent intent = new Intent(action.toString());
-        String actionName = "test";
-        switch (action) {
-		case TEST:
-			break;
-		default:
-			break;
-		}
+	private static Intent intent;
+	private static void broadcastUpdate(Context context ,Action action, DownloadTask dt) {
+        if(intent==null)
+        	intent = new Intent(action.toString());
+        String actionName = action.toString();
         intent.putExtra(EXTRA_ACTION_NAME, actionName);
+//        intent.putExtra(EXTRA_DT, dt.getDownloadInfo());
         context.sendBroadcast(intent);
     }
+	private static IntentFilter createIntentFilter() {
+        final IntentFilter intentFilter = new IntentFilter();
+//        intentFilter.addAction(Action.TEST.toString());
+        intentFilter.addAction(Action.UPDATE.toString());
+        return intentFilter;
+    }
 	private static String EXTRA_ACTION_NAME = "EXTRA_ACTION_NAME";
+	private static String EXTRA_DT = "EXTRA_DT";
 	public static enum Action{
 		TEST,UPDATE
 		;
 		@Override
 		public String toString() {
-			return "cn.way.wandroid"+super.toString();
+			return "cn.way.wandroid."+super.toString();
 		}
 	}
-	public final static String ACTION_TEST =
-            "cn.way.wandroid.ACTION_TEST";
-	private static IntentFilter createIntentFilter() {
-        final IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction(ACTION_TEST);
-        return intentFilter;
-    }
 	
+
 	
+	public static void registerReceiver(Context context,DownloadBroadcastReceiver receiver){
+		context.registerReceiver(receiver, createIntentFilter());
+	}
+	public static void unregisterReceiver(Context context,DownloadBroadcastReceiver receiver){
+		context.unregisterReceiver(receiver);
+	}
 	public static boolean bind(Context context,
 			DownloadServiceConnection serviceConnection) {
 		Intent gattServiceIntent = new Intent(context, DownloadService.class);
@@ -143,10 +173,34 @@ public class DownloadService extends Service {
 	}
 
 	private int maxCount = 3;
-	public static HashMap<String, DownloadTask> downloadTasks = new HashMap<String, DownloadTask>();
-
-	public DownloadTask startDownloadTask() {
+	private LinkedHashMap<String, DownloadTask> downloadTasks = new LinkedHashMap<String, DownloadTask>();
+	public ArrayList<DownloadTask> getDownloadTasks() {
+		return new ArrayList<DownloadTask>(downloadTasks.values());
+	}
+	public DownloadTask getDownloadTask(String url){
+		if (url!=null) {
+			String key = createKey(url);
+			return downloadTasks.get(key);
+		}
 		return null;
+	}
+	private String createKey(String url){
+		return Base64.encodeToString(url.getBytes(), Base64.DEFAULT);
+	}
+	public DownloadTask createDownloadTask(String url,File file,Listener l) {
+		if (url==null||file==null) {
+			if (l!=null) {
+				l.onFailure(-1, null, new Throwable("参数不URL和File不能为空"), file);
+				return null;
+			}
+		}
+		String key = createKey(url);
+		if (downloadTasks.containsKey(key)) {
+			return downloadTasks.get(key);
+		}
+		DownloadTask dt = new DownloadTask(url, file, l);
+		downloadTasks.put(key, dt);
+		return dt;
 	}
 
 }

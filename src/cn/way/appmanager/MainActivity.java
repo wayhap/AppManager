@@ -10,25 +10,18 @@ import org.json.JSONArray;
 import org.json.JSONException;
 
 import android.app.Activity;
-import android.content.ComponentName;
-import android.content.Context;
 import android.content.Intent;
-import android.content.ServiceConnection;
 import android.os.Bundle;
-import android.os.IBinder;
-import android.os.Message;
-import android.os.Messenger;
-import android.os.RemoteException;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import cn.way.appmanager.DownloadService.DownloadBroadcastReceiver;
 import cn.way.appmanager.DownloadService.DownloadServiceConnection;
 import cn.way.appmanager.DownloadTask.Listener;
 import cn.way.wandroid.toast.Toaster;
-import cn.way.wandroid.utils.AsyncTimer;
 import cn.way.wandroid.utils.Delayer;
 import cn.way.wandroid.utils.IOUtils;
 import cn.way.wandroid.utils.WLog;
@@ -36,15 +29,22 @@ import cn.way.wandroid.utils.WLog;
 import com.google.gson.Gson;
 
 public class MainActivity extends Activity {
+	
+	DownloadBroadcastReceiver receiver = new DownloadBroadcastReceiver(){
+		@Override
+		public void onUpdate() {
+			WLog.d(downloadService.getDownloadTasks().get(0).getDownloadInfo().getBytesWritten()+"wwww");
+		}
+	};
+	DownloadService downloadService;
 	DownloadServiceConnection dConn = new DownloadServiceConnection() {
 		@Override
 		public void onServiceDisconnected(DownloadService service) {
-			WLog.d("ddddddddddddddddddd");
 		}
-		
 		@Override
 		public void onServiceConnected(DownloadService service) {
-			WLog.d("dddddddddddddddddddonServiceConnected");
+			downloadService = service;
+			downloadService.createDownloadTask(url, downloadedFile, null).start(getApplicationContext());
 		}
 	};
 
@@ -52,24 +52,31 @@ public class MainActivity extends Activity {
 	@Override
 	protected void onStart() {
 		super.onStart();
-		
+		DownloadService.registerReceiver(this, receiver);
+	}
+	@Override
+	protected void onResume() {
+		super.onResume();
+		DownloadService.bind(this,dConn);
 	}
 	@Override
 	protected void onStop() {
 		super.onStop();
-//		unbindService(dConn);
+		unbindService(dConn);
 		stopDownload();
 	}
 	@Override
 	protected void onDestroy() {
 		super.onDestroy();
-		stopService(new Intent(this, DownloadService.class));
+		DownloadService.unregisterReceiver(this, receiver);
+//		stopService(new Intent(this, DownloadService.class));
 	}
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 		startService(new Intent(this, DownloadService.class));
+		
 		filename = "file.apk";
 	
 		downloadedFile = new File(getExternalCacheDir(), filename);
@@ -130,12 +137,13 @@ public class MainActivity extends Activity {
 		}
 		return false;
 	}
+//	String url = "https://raw.githubusercontent.com/Trinea/trinea-download/master/slide-expandable-listView-demo.apk";
+//	String url = "http://download.ydstatic.com/notewebsite/downloads/YNote.exe";
+	String url = "http://gdown.baidu.com/data/wisegame/6d1bab87db9d5a30/weixin_542.apk";
 	private boolean startDownload(){
 		if (dt==null) {
-//		String url = "https://raw.githubusercontent.com/Trinea/trinea-download/master/slide-expandable-listView-demo.apk";
-//		String url = "http://download.ydstatic.com/notewebsite/downloads/YNote.exe";
-			String url = "http://gdown.baidu.com/data/wisegame/6d1bab87db9d5a30/weixin_542.apk";
-			dt = new DownloadTask(getApplicationContext(), url, downloadedFile, new Listener() {
+
+			dt = new DownloadTask(url, downloadedFile, new Listener() {
 				@Override
 				public void onProgress(int bytesWritten, int totalSize, int progress,
 						int bytesPerSec, int duration) {
@@ -167,7 +175,7 @@ public class MainActivity extends Activity {
 				}
 			});
 		}
-		return dt.start();
+		return dt.start(this);
 	}
 	
 	private Delayer delayer = new Delayer(5*1000);
