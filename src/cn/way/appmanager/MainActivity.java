@@ -10,7 +10,6 @@ import org.json.JSONArray;
 import org.json.JSONException;
 
 import android.app.Activity;
-import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -21,11 +20,14 @@ import android.widget.TextView;
 import cn.way.appmanager.DownloadService.DownloadBroadcastReceiver;
 import cn.way.appmanager.DownloadService.DownloadServiceConnection;
 import cn.way.appmanager.DownloadTask.Listener;
+import cn.way.appmanager.usage.DownloadListPageAdapter;
+import cn.way.wandroid.activityadapter.PageAdapter;
 import cn.way.wandroid.toast.Toaster;
 import cn.way.wandroid.utils.Delayer;
 import cn.way.wandroid.utils.IOUtils;
 import cn.way.wandroid.utils.WLog;
 
+import com.google.api.client.util.StringUtils;
 import com.google.gson.Gson;
 
 public class MainActivity extends Activity {
@@ -33,7 +35,7 @@ public class MainActivity extends Activity {
 	DownloadBroadcastReceiver receiver = new DownloadBroadcastReceiver(){
 		@Override
 		public void onUpdate() {
-			WLog.d(downloadService.getDownloadTasks().get(0).getDownloadInfo().getBytesWritten()+"wwww");
+//			WLog.d(downloadService.getDownloadTasks().get(0).getDownloadInfo().getBytesWritten()+"wwww");
 		}
 	};
 	DownloadService downloadService;
@@ -52,30 +54,34 @@ public class MainActivity extends Activity {
 	@Override
 	protected void onStart() {
 		super.onStart();
-		DownloadService.registerReceiver(this, receiver);
 	}
 	@Override
 	protected void onResume() {
 		super.onResume();
+		DownloadService.registerReceiver(this, receiver);
 		DownloadService.bind(this,dConn);
+	}
+	@Override
+	protected void onPause() {
+		super.onPause();
+		unbindService(dConn);
 	}
 	@Override
 	protected void onStop() {
 		super.onStop();
-		unbindService(dConn);
 		stopDownload();
 	}
 	@Override
 	protected void onDestroy() {
 		super.onDestroy();
 		DownloadService.unregisterReceiver(this, receiver);
-//		stopService(new Intent(this, DownloadService.class));
+		DownloadService.stop(this);
 	}
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
-		startService(new Intent(this, DownloadService.class));
+		DownloadService.start(this);
 		
 		filename = "file.apk";
 	
@@ -124,8 +130,14 @@ public class MainActivity extends Activity {
 				AppManager.openApp(getApplicationContext(), pn);
 			}
 		});
-		
+		findViewById(R.id.downloadList).setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				PageAdapter.turnToPage(MainActivity.this, DownloadListPageAdapter.class);
+			}
+		});
 	}
+	
 	private ProgressBar pb;
 	private DownloadTask dt ;
 	private File downloadedFile ;

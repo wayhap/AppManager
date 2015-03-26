@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical" >
+<!-- 	GridView未设置margin、padding容器内出现空隙问题。 -->
+<!-- 　　	gidview的listSelector中的图片grid_selector_background_xx.9.png -->
+<!-- 　　	画了可见区域导致的空隙。 -->
+<!-- 　　	android:listSelector="@android:color/transparent" -->
+    <GridView
+        android:id="@+id/gridView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:numColumns="1" 
+        android:stretchMode="columnWidth"
+        android:horizontalSpacing="0dp"
+        android:verticalSpacing="2dp"
+        >
+    </GridView>
+
+</LinearLayout>

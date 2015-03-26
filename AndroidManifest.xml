@@ -16,7 +16,7 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <!-- 读写手机状态和身份 -->
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
-    
+
     <application
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
@@ -31,8 +31,28 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <service android:name="cn.way.appmanager.DownloadService">
-        </service>
+
+        <service android:name="cn.way.appmanager.DownloadService" />
+
+        <receiver
+            android:name="cn.way.appmanager.DownloadService$PackageBroadcastReceiver"
+            android:enabled="true" >
+            <intent-filter>
+                <action android:name="android.intent.action.PACKAGE_ADDED" >
+                </action>
+                <!-- <action android:name="android.intent.action.PACKAGE_CHANGED"></action> -->
+                <action android:name="android.intent.action.PACKAGE_REMOVED" >
+                </action>
+                <action android:name="android.intent.action.PACKAGE_REPLACED" >
+                </action>
+                <!-- <action android:name="android.intent.action.PACKAGE_RESTARTED"></action> -->
+                <data android:scheme="package" >
+                </data>
+            </intent-filter>
+        </receiver>
+
+        <activity android:name="cn.way.wandroid.activityadapter.PageAdapterActivity" >
+        </activity>
     </application>
 
 </manifest>

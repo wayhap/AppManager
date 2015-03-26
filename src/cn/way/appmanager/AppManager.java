@@ -37,7 +37,7 @@ public class AppManager {
 		ResolveInfo ri = apps.iterator().next();
 		return ri;
 	}
-    public static ArrayList<ApplicationInfo> loadApplications(Context context) {
+    public static ArrayList<AppDownloadInfo> loadApplications(Context context) {
 
         PackageManager manager = context.getPackageManager();
 
@@ -47,24 +47,23 @@ public class AppManager {
         final List<ResolveInfo> apps = manager.queryIntentActivities(mainIntent, 0);
         Collections.sort(apps, new ResolveInfo.DisplayNameComparator(manager));
         
-        ArrayList<ApplicationInfo> mApplications = null;
+        ArrayList<AppDownloadInfo> mApplications = null;
         if (apps != null) {
             final int count = apps.size();
 
-            mApplications = new ArrayList<ApplicationInfo>(count);
+            mApplications = new ArrayList<AppDownloadInfo>(count);
             
             for (int i = 0; i < count; i++) {
-                ApplicationInfo application = new ApplicationInfo();
+                AppDownloadInfo application = new AppDownloadInfo();
                 ResolveInfo info = apps.get(i);
 
-                application.title = info.loadLabel(manager);
+                application.setAppName(info.loadLabel(manager).toString());
                 application.setActivity(new ComponentName(
                         info.activityInfo.applicationInfo.packageName,
                         info.activityInfo.name),
                         Intent.FLAG_ACTIVITY_NEW_TASK
                         | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
-                application.icon = info.activityInfo.loadIcon(manager);
-
+                application.setIcon(info.activityInfo.loadIcon(manager));
                 mApplications.add(application);
             }
         }

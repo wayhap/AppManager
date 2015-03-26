@@ -12,6 +12,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.PackageManager.NameNotFoundException;
 import android.os.Binder;
 import android.os.IBinder;
 import android.util.Base64;
@@ -22,6 +25,12 @@ import cn.way.wandroid.utils.WLog;
 /**
  * @author Wayne
  * @2015年3月20日
+ * 
+ * <uses-permission android:name="android.permission.INSTALL_LOCATION_PROVIDER" />
+    <uses-permission android:name="android.permission.INSTALL_PACKAGES" />
+    <uses-permission android:name="android.permission.DELETE_PACKAGES" />
+    <uses-permission android:name="android.permission.MOUNT_UNMOUNT_FILESYSTEMS" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
  */
 public class DownloadService extends Service {
 	private String className = getClass().getSimpleName();
@@ -56,7 +65,7 @@ public class DownloadService extends Service {
 				@Override
 				protected void onTimeGoesBy(long totalTimeLength) {
 					if (!getDownloadTasks().isEmpty()) {
-						WLog.d(className +"=====broadcastUpdate=====");
+//						WLog.d(className +"=====broadcastUpdate=====");
 						DownloadService.broadcastUpdate(getApplicationContext(),Action.UPDATE,null);
 					}
 				}
@@ -91,7 +100,7 @@ public class DownloadService extends Service {
 		public abstract void onUpdate();
 		@Override
 		public void onReceive(Context context, Intent intent) {
-			String actionName = intent.getStringExtra(EXTRA_ACTION_NAME);
+			String actionName = intent.getAction();
 //			DownloadInfo dt = (DownloadInfo) intent.getSerializableExtra(EXTRA_DT);
 			if (actionName.equals(Action.UPDATE.toString())) {
 //				WLog.d("DownloadBroadcastReceiver= "+dt.getBytesWritten());
@@ -105,8 +114,6 @@ public class DownloadService extends Service {
 	private static void broadcastUpdate(Context context ,Action action, DownloadTask dt) {
         if(intent==null)
         	intent = new Intent(action.toString());
-        String actionName = action.toString();
-        intent.putExtra(EXTRA_ACTION_NAME, actionName);
 //        intent.putExtra(EXTRA_DT, dt.getDownloadInfo());
         context.sendBroadcast(intent);
     }
@@ -116,8 +123,7 @@ public class DownloadService extends Service {
         intentFilter.addAction(Action.UPDATE.toString());
         return intentFilter;
     }
-	private static String EXTRA_ACTION_NAME = "EXTRA_ACTION_NAME";
-	private static String EXTRA_DT = "EXTRA_DT";
+//	private static String EXTRA_DT = "EXTRA_DT";
 	public static enum Action{
 		TEST,UPDATE
 		;
@@ -137,14 +143,24 @@ public class DownloadService extends Service {
 	}
 	public static boolean bind(Context context,
 			DownloadServiceConnection serviceConnection) {
-		Intent gattServiceIntent = new Intent(context, DownloadService.class);
-		return context.bindService(gattServiceIntent, serviceConnection,
+//		registerReceiver(context);
+		
+		Intent intent = new Intent(context, DownloadService.class);
+		return context.bindService(intent, serviceConnection,
 				BIND_AUTO_CREATE);
 	}
 
 	public static void unbind(Context context,
 			DownloadServiceConnection serviceConnection) {
+//		unregisterReceiver(context);
+		
 		context.unbindService(serviceConnection);
+	}
+	public static void start(Context context) {
+		context.startService(new Intent(context, DownloadService.class));
+	}
+	public static void stop(Context context) {
+		context.stopService(new Intent(context, DownloadService.class));
 	}
 
 	public class LocalBinder extends Binder {
@@ -171,8 +187,39 @@ public class DownloadService extends Service {
 		WLog.d(className +"=====onUnbind=====");
 		return super.onUnbind(intent);
 	}
-
-	private int maxCount = 3;
+	
+//	private static void registerReceiver(Context context){
+//		final IntentFilter intentFilter = new IntentFilter();
+//	    intentFilter.addAction(Intent.ACTION_PACKAGE_ADDED);
+//	    intentFilter.addAction(Intent.ACTION_PACKAGE_REPLACED);
+//	    intentFilter.addAction(Intent.ACTION_PACKAGE_REMOVED);
+//		context.registerReceiver(mBroadcastReceiver, intentFilter);
+//	}
+//	private static void unregisterReceiver(Context context){
+//		context.unregisterReceiver(mBroadcastReceiver);
+//	}
+	public static class PackageBroadcastReceiver extends BroadcastReceiver {
+		@Override
+		public void onReceive(Context context, Intent intent) {
+			String actionName = intent.getAction();
+			WLog.d("actionName : "+actionName);
+			if (actionName.equals(Intent.ACTION_PACKAGE_ADDED)
+					||actionName.equals(Intent.ACTION_PACKAGE_REPLACED)
+							) {
+				PackageManager manager = context.getPackageManager();
+				String packageName = intent.getData().getSchemeSpecificPart();;
+				WLog.d("packageName : "+packageName);
+				PackageInfo localPackageInfo = null;
+				try {
+					localPackageInfo = manager.getPackageInfo(packageName, 0);
+					WLog.d("ACTION_PACKAGE_ADDED : "+packageName+" "+localPackageInfo.versionName);
+				} catch (NameNotFoundException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	};
+//	private int maxCount = 3;
 	private LinkedHashMap<String, DownloadTask> downloadTasks = new LinkedHashMap<String, DownloadTask>();
 	public ArrayList<DownloadTask> getDownloadTasks() {
 		return new ArrayList<DownloadTask>(downloadTasks.values());

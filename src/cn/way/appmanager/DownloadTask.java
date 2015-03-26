@@ -8,6 +8,7 @@ import org.apache.http.HttpResponse;
 
 import android.content.Context;
 import cn.way.wandroid.utils.Delayer;
+import cn.way.wandroid.utils.WLog;
 
 import com.loopj.android.http.AsyncHttpClient;
 import com.loopj.android.http.RangeFileAsyncHttpResponseHandler;
@@ -51,6 +52,15 @@ public class DownloadTask {
 		public File getFile() {
 			return file;
 		}
+
+		public int getProgress() {
+			return progress;
+		}
+
+		public int getDuration() {
+			return duration;
+		}
+		
 		public void reset(){
 			bytesWritten1SecAgo = 0;//一秒前已经下载的字节数
 			bytesWritten = 0;//已经下载的字节数
@@ -59,6 +69,20 @@ public class DownloadTask {
 			bytesPerSec = 0;//每秒下载的字节数
 			duration = 0;
 		}
+
+		/* (non-Javadoc)
+		 * @see java.lang.Object#toString()
+		 */
+		@Override
+		public String toString() {
+			return "DownloadInfo [url=" + url + ", file=" + file
+					+ ", bytesWritten1SecAgo=" + bytesWritten1SecAgo
+					+ ", bytesWritten=" + bytesWritten + ", totalSize="
+					+ totalSize + ", progress=" + progress + ", bytesPerSec="
+					+ bytesPerSec + ", duration=" + duration + ", startTime="
+					+ startTime + "]";
+		}
+		
 	}
 	
 	
@@ -161,10 +185,12 @@ public class DownloadTask {
 //				}
 			}
 		});
+		WLog.d("=====a task started=====");
 		return true;
 	}
 
 	public boolean stop(){
+		WLog.d("=====a task stoped=====");
 		if(requestHandle!=null){
 			if(requestHandle.cancel(true)){
 				reset();
