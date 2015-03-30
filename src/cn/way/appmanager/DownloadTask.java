@@ -33,6 +33,13 @@ public class DownloadTask {
 		bytesPerSec,//每秒下载的字节数
 		duration;//下载使用的时间
 		private long startTime;
+		
+		public DownloadInfo(String url, File file) {
+			super();
+			this.url = url;
+			this.file = file;
+		}
+
 		public int getBytesWritten() {
 			return bytesWritten;
 		}
@@ -61,6 +68,10 @@ public class DownloadTask {
 			return duration;
 		}
 		
+		public boolean isEmpty(){
+			return url==null||file==null;
+		}
+		
 		public void reset(){
 			bytesWritten1SecAgo = 0;//一秒前已经下载的字节数
 			bytesWritten = 0;//已经下载的字节数
@@ -87,37 +98,32 @@ public class DownloadTask {
 	
 	
 	private Listener l;
-	private DownloadInfo downloadInfo = new DownloadInfo();
+	private DownloadInfo mDownloadInfo;
 	public DownloadInfo getDownloadInfo() {
-		return downloadInfo;
+		return mDownloadInfo;
 	}
 	private Listener mListener = new Listener() {
-		@Override
-		public void onSuccess(int statusCode, Header[] headers, File response) {
-			if (l!=null) {
-				l.onSuccess(statusCode, headers, response);
-			}
-		}
+		
 		@Override
 		public void onProgress(int bytesWritten,int totalSize,int progress,int bytesPerSec,int duration) {
 			if (l!=null) {
 				l.onProgress(bytesWritten, totalSize, progress, bytesPerSec, duration);
 			}
 		}
+
 		@Override
-		public void onFailure(int statusCode, Header[] headers,
-				Throwable throwable, File file) {
+		public void onFinish(int statusCode, Header[] headers, File response,
+				boolean success, Throwable throwable) {
 			if (l!=null) {
-				l.onFailure(statusCode, headers, throwable, file);
+				l.onFinish(statusCode, headers, response, success, throwable);
 			}
 		}
 	};
 	
-	public DownloadTask(String url, File file,
+	public DownloadTask(DownloadInfo downloadInfo,
 			Listener l) {
 		super();
-		downloadInfo.url = url;
-		downloadInfo.file = file;
+		mDownloadInfo = downloadInfo;
 		this.l = l;
 	}
 	private Delayer mSpeedDelayer = new Delayer(1000);
@@ -129,38 +135,38 @@ public class DownloadTask {
 			return false;
 		}
 //		client.setMaxRetriesAndTimeout(500, 3*1000);
-		downloadInfo.startTime = System.currentTimeMillis()/1000;
-		requestHandle = client.get(context,downloadInfo.url, new RangeFileAsyncHttpResponseHandler(downloadInfo.file) {
+		mDownloadInfo.startTime = System.currentTimeMillis()/1000;
+		requestHandle = client.get(context,mDownloadInfo.url, new RangeFileAsyncHttpResponseHandler(mDownloadInfo.file) {
 			@Override
 			public void onFinish() {
 				super.onFinish();
-				mListener.onProgress(downloadInfo.bytesWritten, downloadInfo.totalSize, downloadInfo.progress, downloadInfo.bytesPerSec, downloadInfo.duration);
+				mListener.onProgress(mDownloadInfo.bytesWritten, mDownloadInfo.totalSize, mDownloadInfo.progress, mDownloadInfo.bytesPerSec, mDownloadInfo.duration);
 				requestHandle = null;
 			}
 			@Override
 			public void onProgress(int bytesWritten, int totalSize) {
 				super.onProgress(bytesWritten, totalSize);
 				if (mSpeedDelayer.getWaitingTime()==0) {
-					if (bytesWritten>0&&downloadInfo.bytesWritten1SecAgo==0) {
-						downloadInfo.bytesWritten1SecAgo = bytesWritten;
+					if (bytesWritten>0&&mDownloadInfo.bytesWritten1SecAgo==0) {
+						mDownloadInfo.bytesWritten1SecAgo = bytesWritten;
 					}
-					int data1Sec = bytesWritten - downloadInfo.bytesWritten1SecAgo;
-					downloadInfo.bytesPerSec = data1Sec>0?data1Sec:0;
-					downloadInfo.bytesWritten1SecAgo = bytesWritten;
+					int data1Sec = bytesWritten - mDownloadInfo.bytesWritten1SecAgo;
+					mDownloadInfo.bytesPerSec = data1Sec>0?data1Sec:0;
+					mDownloadInfo.bytesWritten1SecAgo = bytesWritten;
 					long timeNow = System.currentTimeMillis()/1000;
-					downloadInfo.duration = (int) (timeNow - downloadInfo.startTime);
+					mDownloadInfo.duration = (int) (timeNow - mDownloadInfo.startTime);
 				}
-				downloadInfo.bytesWritten = bytesWritten;
-				downloadInfo.totalSize = totalSize;
-				downloadInfo.progress = (int)(bytesWritten/(float)totalSize*100);
+				mDownloadInfo.bytesWritten = bytesWritten;
+				mDownloadInfo.totalSize = totalSize;
+				mDownloadInfo.progress = (int)(bytesWritten/(float)totalSize*100);
 				if (mUpdateDelayer.getWaitingTime()==0) {
-					mListener.onProgress(bytesWritten, totalSize, downloadInfo.progress, downloadInfo.bytesPerSec, downloadInfo.duration);
+					mListener.onProgress(bytesWritten, totalSize, mDownloadInfo.progress, mDownloadInfo.bytesPerSec, mDownloadInfo.duration);
 				}
 			}
 			
 		    @Override
 		    public void onSuccess(int statusCode, Header[] headers, File response) {
-		    	mListener.onSuccess(statusCode, headers, response);
+		    	mListener.onFinish(statusCode, headers,response,true,null);
 //		    	for (Header h : headers) {
 //					WLog.d("###"+ h.getName()+" = "+h.getValue());
 //				}
@@ -168,7 +174,7 @@ public class DownloadTask {
 			@Override
 			public void onFailure(int statusCode, Header[] headers,
 					Throwable throwable, File file) {
-				mListener.onFailure(statusCode, headers, throwable, file);
+				mListener.onFinish(statusCode, headers,file,false,throwable);
 			}
 			@Override
 			public void onPreProcessResponse(ResponseHandlerInterface instance,
@@ -206,12 +212,11 @@ public class DownloadTask {
 	private void reset(){
 		mSpeedDelayer.reset();
 		requestHandle = null;
-		downloadInfo.reset();
+		mDownloadInfo.reset();
 	}
 	public interface Listener{
 		void onProgress(int bytesWritten,int totalSize,int progress,int bytesPerSec,int duration);
-		void onSuccess(int statusCode, Header[] headers, File response);
-		void onFailure(int statusCode, Header[] headers, Throwable throwable, File file);
+		void onFinish(int statusCode, Header[] headers, File response, boolean success, Throwable throwable);
 	}
 	
 }

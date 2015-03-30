@@ -2,8 +2,11 @@ package cn.way.appmanager;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+
+import org.apache.http.Header;
 
 import android.app.Service;
 import android.content.BroadcastReceiver;
@@ -17,7 +20,7 @@ import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.os.Binder;
 import android.os.IBinder;
-import android.util.Base64;
+import cn.way.appmanager.DownloadTask.DownloadInfo;
 import cn.way.appmanager.DownloadTask.Listener;
 import cn.way.wandroid.utils.AsyncTimer;
 import cn.way.wandroid.utils.WLog;
@@ -59,6 +62,9 @@ public class DownloadService extends Service {
 			timer.cancel();
 		}
 	}
+	/**
+	 * 启动TIMER，每隔一定时间发出一个下载进度更新广播
+	 */
 	private void startUpdateTimer(){
 		if (timer==null) {
 			timer = new AsyncTimer() {
@@ -133,8 +139,6 @@ public class DownloadService extends Service {
 		}
 	}
 	
-
-	
 	public static void registerReceiver(Context context,DownloadBroadcastReceiver receiver){
 		context.registerReceiver(receiver, createIntentFilter());
 	}
@@ -198,6 +202,10 @@ public class DownloadService extends Service {
 //	private static void unregisterReceiver(Context context){
 //		context.unregisterReceiver(mBroadcastReceiver);
 //	}
+	/**
+	 * 包状态广播接收者，对包的安装或更新进行监听。
+	 * @author Wayne
+	 */
 	public static class PackageBroadcastReceiver extends BroadcastReceiver {
 		@Override
 		public void onReceive(Context context, Intent intent) {
@@ -220,34 +228,85 @@ public class DownloadService extends Service {
 		}
 	};
 //	private int maxCount = 3;
+	/**
+	 * 保存所有下载任务。KEY为下载地址
+	 */
 	private LinkedHashMap<String, DownloadTask> downloadTasks = new LinkedHashMap<String, DownloadTask>();
 	public ArrayList<DownloadTask> getDownloadTasks() {
 		return new ArrayList<DownloadTask>(downloadTasks.values());
 	}
 	public DownloadTask getDownloadTask(String url){
 		if (url!=null) {
-			String key = createKey(url);
-			return downloadTasks.get(key);
+			return downloadTasks.get(url);
 		}
 		return null;
 	}
-	private String createKey(String url){
-		return Base64.encodeToString(url.getBytes(), Base64.DEFAULT);
-	}
-	public DownloadTask createDownloadTask(String url,File file,Listener l) {
-		if (url==null||file==null) {
+
+	/**
+	 * 创建一个新的下载任务，通过传入的URL来判断。如果之前没有这个URL的任务才会创建，否则直接返回
+	 * @param url
+	 * @param file
+	 * @param l
+	 * @return
+	 */
+	public DownloadTask createDownloadTask(AppDownloadInfo appDownloadInfo,Listener l) {
+		DownloadInfo downloadInfo = appDownloadInfo==null?null:appDownloadInfo.getDownloadInfo();
+		if (appDownloadInfo==null||downloadInfo.isEmpty()) {
 			if (l!=null) {
-				l.onFailure(-1, null, new Throwable("参数不URL和File不能为空"), file);
+				l.onFinish(-1, null,null,false,new Throwable("参数不URL和File不能为空"));
 				return null;
 			}
 		}
-		String key = createKey(url);
-		if (downloadTasks.containsKey(key)) {
-			return downloadTasks.get(key);
+		if (downloadTasks.containsKey(downloadInfo.getUrl())) {
+			return downloadTasks.get(downloadInfo.getUrl());
 		}
-		DownloadTask dt = new DownloadTask(url, file, l);
-		downloadTasks.put(key, dt);
+		final Listener listener = l;
+		final String path = downloadInfo.getUrl();
+		DownloadTask dt = new DownloadTask(downloadInfo, new Listener() {
+			@Override
+			public void onProgress(int bytesWritten, int totalSize,
+					int progress, int bytesPerSec, int duration) {
+				if (listener!=null) {
+					listener.onProgress(bytesWritten, totalSize, progress, bytesPerSec, duration);
+				}
+			}
+			@Override
+			public void onFinish(int statusCode, Header[] headers,
+					File response, boolean success, Throwable throwable) {
+				if (listener!=null) {
+					listener.onFinish(statusCode, headers, response, success, throwable);
+				}
+				downloadTasks.remove(path);
+				WLog.d("=====DownloadTask Finished====="+path);
+				if (downloadTasks.size()==0) {
+					persistDownloadInfos();
+				}
+			}
+		});
+		downloadTasks.put(downloadInfo.getUrl(), dt);
+		if (data==null) {
+			data = readDownloadInofs();
+		}
+		data.put(appDownloadInfo.getPackageName()+"", appDownloadInfo);
 		return dt;
 	}
-
+	private HashMap<String, AppDownloadInfo> data;
+	public HashMap<String, AppDownloadInfo> readDownloadInofs(){
+		if (data==null) {
+			data = AppDownloadInfoPersister.defaultInstance(getApplicationContext()).readAll();
+		}
+		if (data!=null) {
+			WLog.d(data.toString());
+		}else{
+			data = new HashMap<String, AppDownloadInfo>();
+		}
+		return data;
+	}
+	
+	private void persistDownloadInfos(){
+		boolean result = AppDownloadInfoPersister.defaultInstance(getApplicationContext()).persistAll(data);
+		if (result) {
+			readDownloadInofs();
+		}
+	}
 }

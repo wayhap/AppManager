@@ -1,10 +1,9 @@
 package cn.way.appmanager;
 
-import cn.way.appmanager.DownloadTask.DownloadInfo;
-import cn.way.wandroid.utils.StrUtils;
 import android.content.ComponentName;
 import android.content.Intent;
-import android.graphics.drawable.Drawable;
+import cn.way.appmanager.DownloadTask.DownloadInfo;
+import cn.way.wandroid.utils.StrUtils;
 
 
 public class AppDownloadInfo {
@@ -14,8 +13,6 @@ public class AppDownloadInfo {
     private String description;
     private int versionCode;
     private String iconUrl;
-    private Drawable icon;
-    
     private DownloadInfo downloadInfo;
 
 	public String getAppName() {
@@ -69,13 +66,13 @@ public class AppDownloadInfo {
 		this.iconUrl = iconUrl;
 	}
 
-	public Drawable getIcon() {
-		return icon;
-	}
-
-	public void setIcon(Drawable icon) {
-		this.icon = icon;
-	}
+//	public Drawable getIcon() {
+//		return icon;
+//	}
+//
+//	public void setIcon(Drawable icon) {
+//		this.icon = icon;
+//	}
 	
 	public DownloadInfo getDownloadInfo() {
 		return downloadInfo;
@@ -85,14 +82,16 @@ public class AppDownloadInfo {
 		this.downloadInfo = downloadInfo;
 	}
 	
-
+	/* (non-Javadoc)
+	 * @see java.lang.Object#toString()
+	 */
 	@Override
 	public String toString() {
-		return "AppDownloadInfo [appName=" + appName + ", packageName="
-				+ packageName 
-				+ ", versionName=" + versionName + ", versionCode="
-				+ versionCode + "]";
+		return "AppDownloadInfo [packageName=" + packageName + ", versionName="
+				+ versionName + ", versionCode=" + versionCode
+				+ ", downloadInfo=" + downloadInfo + "]";
 	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;

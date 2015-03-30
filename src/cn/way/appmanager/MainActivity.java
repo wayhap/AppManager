@@ -19,6 +19,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import cn.way.appmanager.DownloadService.DownloadBroadcastReceiver;
 import cn.way.appmanager.DownloadService.DownloadServiceConnection;
+import cn.way.appmanager.DownloadTask.DownloadInfo;
 import cn.way.appmanager.DownloadTask.Listener;
 import cn.way.appmanager.usage.DownloadListPageAdapter;
 import cn.way.wandroid.activityadapter.PageAdapter;
@@ -27,7 +28,6 @@ import cn.way.wandroid.utils.Delayer;
 import cn.way.wandroid.utils.IOUtils;
 import cn.way.wandroid.utils.WLog;
 
-import com.google.api.client.util.StringUtils;
 import com.google.gson.Gson;
 
 public class MainActivity extends Activity {
@@ -46,7 +46,9 @@ public class MainActivity extends Activity {
 		@Override
 		public void onServiceConnected(DownloadService service) {
 			downloadService = service;
-			downloadService.createDownloadTask(url, downloadedFile, null).start(getApplicationContext());
+			AppDownloadInfo info = new AppDownloadInfo();
+			info.setDownloadInfo(new DownloadInfo(url, downloadedFile));
+			downloadService.createDownloadTask(info, null).start(getApplicationContext());
 		}
 	};
 
@@ -155,7 +157,7 @@ public class MainActivity extends Activity {
 	private boolean startDownload(){
 		if (dt==null) {
 
-			dt = new DownloadTask(url, downloadedFile, new Listener() {
+			dt = new DownloadTask(new DownloadInfo(url, downloadedFile), new Listener() {
 				@Override
 				public void onProgress(int bytesWritten, int totalSize, int progress,
 						int bytesPerSec, int duration) {
@@ -175,15 +177,12 @@ public class MainActivity extends Activity {
 					pb.setProgress(progress);
 				}
 				@Override
-				public void onSuccess(int statusCode, Header[] headers, File response) {
+				public void onFinish(int statusCode, Header[] headers,
+						File response, boolean success, Throwable throwable) {
 					controlBtn.setText("START");
-				}
-				
-				@Override
-				public void onFailure(int statusCode, Header[] headers,
-						Throwable throwable, File file) {
-					controlBtn.setText("START");
-					WLog.d("DOWNLOAD-FAILURE:"+throwable.getLocalizedMessage());
+					if (!success) {
+						WLog.d("DOWNLOAD-FAILURE:"+throwable.getLocalizedMessage());
+					}
 				}
 			});
 		}
