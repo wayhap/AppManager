@@ -46,9 +46,9 @@ public class MainActivity extends Activity {
 		@Override
 		public void onServiceConnected(DownloadService service) {
 			downloadService = service;
-			AppDownloadInfo info = new AppDownloadInfo();
-			info.setDownloadInfo(new DownloadInfo(url, downloadedFile));
-			downloadService.createDownloadTask(info, null).start(getApplicationContext());
+//			AppDownloadInfo info = new AppDownloadInfo();
+//			info.setDownloadInfo(new DownloadInfo(url, downloadedFile));
+//			downloadService.createDownloadTask(info, null).start(getApplicationContext());
 		}
 	};
 

@@ -18,6 +18,9 @@
             android:layout_gravity="center_vertical|end"
             android:layout_marginRight="10dp"
             android:text="下载"/>
-        
+        <TextView android:id="@+id/stateTv"
+        	android:layout_width="match_parent"
+        	android:layout_height="wrap_content"/>
     </FrameLayout>
+    
 </LinearLayout>

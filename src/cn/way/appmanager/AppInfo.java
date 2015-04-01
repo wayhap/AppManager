@@ -1,23 +1,20 @@
 package cn.way.appmanager;
 
 import android.content.ComponentName;
-import android.content.Context;
 import android.content.Intent;
-import cn.way.appmanager.DownloadTask.DownloadInfo;
+import android.graphics.drawable.Drawable;
 import cn.way.wandroid.utils.StrUtils;
 
 
-public class AppDownloadInfo {
+public class AppInfo {
     private String appName;
     private String packageName;
     private String versionName;
     private String description;
     private int versionCode;
     private String iconUrl;
-    private DownloadInfo downloadInfo;
-    private boolean isInstalled;
-    private boolean isNeedUpdate; 
-
+    private Drawable icon;
+   
 	public String getAppName() {
 		return appName;
 	}
@@ -69,21 +66,21 @@ public class AppDownloadInfo {
 		this.iconUrl = iconUrl;
 	}
 
-	public DownloadInfo getDownloadInfo() {
-		return downloadInfo;
+	public Drawable getIcon() {
+		return icon;
 	}
 
-	public void setDownloadInfo(DownloadInfo downloadInfo) {
-		this.downloadInfo = downloadInfo;
+	public void setIcon(Drawable icon) {
+		this.icon = icon;
 	}
 	
 	@Override
 	public String toString() {
-		return "AppDownloadInfo [packageName=" + packageName + ", versionName="
-				+ versionName + ", versionCode=" + versionCode
-				+ ", downloadInfo=" + downloadInfo + "]";
+		return "AppDownloadInfo [appName=" + appName + ", packageName="
+				+ packageName 
+				+ ", versionName=" + versionName + ", versionCode="
+				+ versionCode + "]";
 	}
-
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -101,7 +98,7 @@ public class AppDownloadInfo {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		AppDownloadInfo other = (AppDownloadInfo) obj;
+		AppInfo other = (AppInfo) obj;
 		if (packageName == null) {
 			if (other.packageName != null)
 				return false;
@@ -112,6 +109,8 @@ public class AppDownloadInfo {
 		return true;
 	}
 
+
+
 	private Intent intent;
     final void setActivity(ComponentName className, int launchFlags) {
     	className.getPackageName();
@@ -121,22 +120,4 @@ public class AppDownloadInfo {
         intent.setFlags(launchFlags);
     }
 
-	public boolean isInstalled(Context context) {
-		if (!isInstalled&&packageName!=null) {
-			isInstalled = AppManager.isAppInstalled(context, packageName);
-		}
-		return isInstalled;
-	}
-
-	public void setInstalled(boolean isInstalled) {
-		this.isInstalled = isInstalled;
-	}
-
-	public boolean isNeedUpdate(Context context) {
-		if (!isNeedUpdate) {
-			int vCode = AppManager.getVersionCode(context, packageName); 
-			isNeedUpdate = vCode!=-1&&vCode<getVersionCode();
-		}
-		return isNeedUpdate;
-	}
 }

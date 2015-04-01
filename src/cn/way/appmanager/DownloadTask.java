@@ -92,8 +92,7 @@ public class DownloadTask {
 					+ totalSize + ", progress=" + progress + ", bytesPerSec="
 					+ bytesPerSec + ", duration=" + duration + ", startTime="
 					+ startTime + "]";
-		}
-		
+		}	
 	}
 	
 	
@@ -141,6 +140,7 @@ public class DownloadTask {
 			public void onFinish() {
 				super.onFinish();
 				mListener.onProgress(mDownloadInfo.bytesWritten, mDownloadInfo.totalSize, mDownloadInfo.progress, mDownloadInfo.bytesPerSec, mDownloadInfo.duration);
+				mListener.onFinish(0, null, null, false, null);
 				requestHandle = null;
 			}
 			@Override
@@ -170,19 +170,25 @@ public class DownloadTask {
 //		    	for (Header h : headers) {
 //					WLog.d("###"+ h.getName()+" = "+h.getValue());
 //				}
+		    	WLog.d("###DownloadTask SUCCESS");
+		    	if (mDownloadInfo.file.exists()) {
+					mDownloadInfo.progress = 100;
+					mDownloadInfo.bytesWritten = (int) mDownloadInfo.file.length();
+				}
 		    }
 			@Override
 			public void onFailure(int statusCode, Header[] headers,
 					Throwable throwable, File file) {
 				mListener.onFinish(statusCode, headers,file,false,throwable);
+				WLog.d("DownloadTask FAILURE:"+throwable.getLocalizedMessage());
 			}
 			@Override
 			public void onPreProcessResponse(ResponseHandlerInterface instance,
 					HttpResponse response) {
 				super.onPreProcessResponse(instance, response);
-//				for (Header h : response.getAllHeaders()) {
-//					WLog.d("###"+ h.getName()+" = "+h.getValue());
-//				}
+				for (Header h : response.getAllHeaders()) {
+					WLog.d("###"+ h.getName()+" = "+h.getValue());
+				}
 //				String filename = OtherUtils.getFileNameFromHttpResponse(response);
 //				if (filename!=null) {
 //					MainActivity.this.filename = filename;
@@ -199,7 +205,8 @@ public class DownloadTask {
 		WLog.d("=====a task stoped=====");
 		if(requestHandle!=null){
 			if(requestHandle.cancel(true)){
-				reset();
+				mListener.onFinish(0, null, null, false, null);
+				reset(false);//这里不能清空下载信息。因为DownloadService会做保存操作
 				return true;
 			}
 		}
@@ -209,10 +216,10 @@ public class DownloadTask {
 		return requestHandle!=null;
 	}
 	
-	private void reset(){
+	private void reset(boolean resetDownloadInfo){
 		mSpeedDelayer.reset();
 		requestHandle = null;
-		mDownloadInfo.reset();
+		if(resetDownloadInfo)mDownloadInfo.reset();
 	}
 	public interface Listener{
 		void onProgress(int bytesWritten,int totalSize,int progress,int bytesPerSec,int duration);

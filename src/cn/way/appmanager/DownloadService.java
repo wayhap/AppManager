@@ -54,6 +54,7 @@ public class DownloadService extends Service {
 				DownloadTask task = tasksIterator.next();
 				task.stop();
 			}
+			persistDownloadInfos(getApplicationContext());
 		}
 		stopUpdateTimer();
 	}
@@ -71,8 +72,8 @@ public class DownloadService extends Service {
 				@Override
 				protected void onTimeGoesBy(long totalTimeLength) {
 					if (!getDownloadTasks().isEmpty()) {
-//						WLog.d(className +"=====broadcastUpdate=====");
-						DownloadService.broadcastUpdate(getApplicationContext(),Action.UPDATE,null);
+						WLog.d(className +"=====broadcastUpdate=====");
+						DownloadService.broadcastUpdate(getApplicationContext(),null);
 					}
 				}
 			};
@@ -117,9 +118,9 @@ public class DownloadService extends Service {
 		}
 	}
 	private static Intent intent;
-	private static void broadcastUpdate(Context context ,Action action, DownloadTask dt) {
+	private static void broadcastUpdate(Context context , DownloadTask dt) {
         if(intent==null)
-        	intent = new Intent(action.toString());
+        	intent = new Intent(Action.UPDATE.toString());
 //        intent.putExtra(EXTRA_DT, dt.getDownloadInfo());
         context.sendBroadcast(intent);
     }
@@ -276,24 +277,20 @@ public class DownloadService extends Service {
 				if (listener!=null) {
 					listener.onFinish(statusCode, headers, response, success, throwable);
 				}
-				downloadTasks.remove(path);
-				WLog.d("=====DownloadTask Finished====="+path);
-				if (downloadTasks.size()==0) {
-					persistDownloadInfos();
-				}
+				WLog.d("=====###DownloadTask Finished###====="+path);
 			}
 		});
 		downloadTasks.put(downloadInfo.getUrl(), dt);
 		if (data==null) {
-			data = readDownloadInofs();
+			data = readDownloadInofs(getApplicationContext());
 		}
 		data.put(appDownloadInfo.getPackageName()+"", appDownloadInfo);
 		return dt;
 	}
-	private HashMap<String, AppDownloadInfo> data;
-	public HashMap<String, AppDownloadInfo> readDownloadInofs(){
+	private static HashMap<String, AppDownloadInfo> data;
+	public static HashMap<String, AppDownloadInfo> readDownloadInofs(Context context){
 		if (data==null) {
-			data = AppDownloadInfoPersister.defaultInstance(getApplicationContext()).readAll();
+			data = AppDownloadInfoPersister.defaultInstance(context).readAll();
 		}
 		if (data!=null) {
 			WLog.d(data.toString());
@@ -303,10 +300,11 @@ public class DownloadService extends Service {
 		return data;
 	}
 	
-	private void persistDownloadInfos(){
-		boolean result = AppDownloadInfoPersister.defaultInstance(getApplicationContext()).persistAll(data);
-		if (result) {
-			readDownloadInofs();
-		}
+	private static void persistDownloadInfos(Context context){
+//		boolean result = 
+				AppDownloadInfoPersister.defaultInstance(context).persistAll(data);
+//		if (result) {
+//			readDownloadInofs(context);
+//		}
 	}
 }

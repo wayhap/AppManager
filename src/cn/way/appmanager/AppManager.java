@@ -20,7 +20,35 @@ import android.net.Uri;
  * @2015年3月9日
  */
 public class AppManager {
-	public static ResolveInfo isAppInstalled(Context context,String packageName){
+	public static boolean isAppInstalled(Context context,String packageName){
+		return getInstalledAppInfo(context, packageName)!=null;
+	}
+	public static PackageInfo getPackageInfo(Context context,String packageName){
+		PackageManager packageManager = context.getPackageManager();
+		PackageInfo pi = null;
+		try {
+			pi = packageManager.getPackageInfo(packageName, 0);
+		} catch (NameNotFoundException e) {
+		}
+		return pi;
+	}
+
+	public static String getVersionName(Context context,String packageName) {
+		PackageInfo pi = getPackageInfo(context, packageName);
+		if (pi!=null) {
+			return pi.versionName;
+		}
+		return null;
+	}
+	public static int getVersionCode(Context context,String packageName) {
+		PackageInfo pi = getPackageInfo(context, packageName);
+		if (pi!=null) {
+			return pi.versionCode;
+		}
+		return -1;
+	}
+	
+	public static ResolveInfo getInstalledAppInfo(Context context,String packageName){
 		PackageManager packageManager = context.getPackageManager();
 		PackageInfo pi = null;
 		try {
@@ -82,7 +110,7 @@ public class AppManager {
 	 * @param context
 	 */
 	public static boolean openApp(Context context,String packageName) {
-		ResolveInfo ri = isAppInstalled(context, packageName);
+		ResolveInfo ri = getInstalledAppInfo(context, packageName);
 		return openApp(context, packageName,ri);
 	}
 	/**
