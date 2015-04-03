@@ -200,7 +200,6 @@ public class DownloadTask {
 		WLog.d("=====a task started=====");
 		return true;
 	}
-
 	public boolean stop(){
 		WLog.d("=====a task stoped=====");
 		if(requestHandle!=null){

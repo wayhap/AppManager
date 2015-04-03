@@ -15,9 +15,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
-import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager;
-import android.content.pm.PackageManager.NameNotFoundException;
 import android.os.Binder;
 import android.os.IBinder;
 import cn.way.appmanager.DownloadTask.DownloadInfo;
@@ -38,6 +35,7 @@ import cn.way.wandroid.utils.WLog;
 public class DownloadService extends Service {
 	private String className = getClass().getSimpleName();
 	private AsyncTimer timer;
+	private boolean autoRetry;
 	@Override
 	public void onCreate() {
 		super.onCreate();
@@ -50,11 +48,11 @@ public class DownloadService extends Service {
 		WLog.d(className +"=====onDestroy=====");
 		if (!downloadTasks.isEmpty()) {
 			Iterator<DownloadTask> tasksIterator = downloadTasks.values().iterator();
-			while (tasksIterator.hasNext()) {
+			while (tasksIterator.hasNext()) {//停止所有下载任务
 				DownloadTask task = tasksIterator.next();
 				task.stop();
 			}
-			persistDownloadInfos(getApplicationContext());
+			persistDownloadInfos(getApplicationContext());//保存下载信息
 		}
 		stopUpdateTimer();
 	}
@@ -74,6 +72,15 @@ public class DownloadService extends Service {
 					if (!getDownloadTasks().isEmpty()) {
 						WLog.d(className +"=====broadcastUpdate=====");
 						DownloadService.broadcastUpdate(getApplicationContext(),null);
+						if (!downloadTasks.isEmpty()&&autoRetry) {
+							Iterator<DownloadTask> tasksIterator = downloadTasks.values().iterator();
+							while (tasksIterator.hasNext()) {
+								DownloadTask task = tasksIterator.next();
+								if (!task.isRunning()&&task.getDownloadInfo().getProgress()!=100) {
+									task.start(getApplicationContext());
+								}
+							}
+						}
 					}
 				}
 			};
@@ -207,24 +214,45 @@ public class DownloadService extends Service {
 	 * 包状态广播接收者，对包的安装或更新进行监听。
 	 * @author Wayne
 	 */
-	public static class PackageBroadcastReceiver extends BroadcastReceiver {
+	public static class PackageStateReceiver extends BroadcastReceiver {
+		public void register(Context context){
+			IntentFilter filter = new IntentFilter(Intent.ACTION_PACKAGE_ADDED);
+            filter.addAction(Intent.ACTION_PACKAGE_REMOVED);
+            filter.addAction(Intent.ACTION_PACKAGE_CHANGED);
+            filter.addAction(Intent.ACTION_PACKAGE_REPLACED);
+            filter.addDataScheme("package");
+            context.registerReceiver(this, filter);
+            IntentFilter sdFilter = new IntentFilter();
+            sdFilter.addAction(Intent.ACTION_EXTERNAL_APPLICATIONS_AVAILABLE);
+            sdFilter.addAction(Intent.ACTION_EXTERNAL_APPLICATIONS_UNAVAILABLE);
+            context.registerReceiver(this, sdFilter);
+		}
+		public void unregister(Context context){
+			context.unregisterReceiver(this);
+		}
 		@Override
 		public void onReceive(Context context, Intent intent) {
 			String actionName = intent.getAction();
-			WLog.d("actionName : "+actionName);
+			String packageName = intent.getData().getSchemeSpecificPart();
+			String versionName = AppManager.getVersionName(context, packageName);
+			WLog.d(String.format("PACKAGE:::::ActionName:%s  PackageName:%s  VersionName:%s",actionName,packageName,versionName));
 			if (actionName.equals(Intent.ACTION_PACKAGE_ADDED)
-					||actionName.equals(Intent.ACTION_PACKAGE_REPLACED)
+//					||actionName.equals(Intent.ACTION_PACKAGE_REPLACED)
 							) {
-				PackageManager manager = context.getPackageManager();
-				String packageName = intent.getData().getSchemeSpecificPart();;
-				WLog.d("packageName : "+packageName);
-				PackageInfo localPackageInfo = null;
-				try {
-					localPackageInfo = manager.getPackageInfo(packageName, 0);
-					WLog.d("ACTION_PACKAGE_ADDED : "+packageName+" "+localPackageInfo.versionName);
-				} catch (NameNotFoundException e) {
-					e.printStackTrace();
+				if (data.containsKey(packageName)) {
+					File file = data.get(packageName).getDownloadInfo().getFile();
+					WLog.d("PACKAGE:::::delete : "+file);
+					if(!file.delete()){
+						file.deleteOnExit();
+					}
+					//data.get(packageName).getDownloadInfo().reset();
 				}
+			}
+			if (actionName.equals(Intent.ACTION_PACKAGE_REMOVED)) {
+//				Uri uri = Uri.parse("http://wayne.aliapp.com/");
+//				Intent i = new Intent(Intent.ACTION_VIEW, uri);
+//				i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+//				context.startActivity(i); 
 			}
 		}
 	};
@@ -254,7 +282,7 @@ public class DownloadService extends Service {
 		DownloadInfo downloadInfo = appDownloadInfo==null?null:appDownloadInfo.getDownloadInfo();
 		if (appDownloadInfo==null||downloadInfo.isEmpty()) {
 			if (l!=null) {
-				l.onFinish(-1, null,null,false,new Throwable("参数不URL和File不能为空"));
+				l.onFinish(-1, null,null,false,new Throwable("参数URL和File不能为空"));
 				return null;
 			}
 		}
@@ -280,6 +308,7 @@ public class DownloadService extends Service {
 				WLog.d("=====###DownloadTask Finished###====="+path);
 			}
 		});
+		//在下载任务和data中添加相同的引用但KEY不一样。任务以URL作为KEY，应用MAP以包名作为KEY
 		downloadTasks.put(downloadInfo.getUrl(), dt);
 		if (data==null) {
 			data = readDownloadInofs(getApplicationContext());
@@ -287,6 +316,9 @@ public class DownloadService extends Service {
 		data.put(appDownloadInfo.getPackageName()+"", appDownloadInfo);
 		return dt;
 	}
+	/**
+	 * 映射所有的下载应用信息到MAP，方便查询，这里的下载信息，与下载任务中的下载信息是同一引用
+	 */
 	private static HashMap<String, AppDownloadInfo> data;
 	public static HashMap<String, AppDownloadInfo> readDownloadInofs(Context context){
 		if (data==null) {
@@ -299,12 +331,21 @@ public class DownloadService extends Service {
 		}
 		return data;
 	}
-	
+	/**
+	 * 保存下载应用信息
+	 * @param context
+	 */
 	private static void persistDownloadInfos(Context context){
 //		boolean result = 
 				AppDownloadInfoPersister.defaultInstance(context).persistAll(data);
 //		if (result) {
 //			readDownloadInofs(context);
 //		}
+	}
+	public boolean isAutoRetry() {
+		return autoRetry;
+	}
+	public void setAutoRetry(boolean autoRetry) {
+		this.autoRetry = autoRetry;
 	}
 }

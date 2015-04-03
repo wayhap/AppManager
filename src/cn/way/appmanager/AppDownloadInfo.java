@@ -15,8 +15,6 @@ public class AppDownloadInfo {
     private int versionCode;
     private String iconUrl;
     private DownloadInfo downloadInfo;
-    private boolean isInstalled;
-    private boolean isNeedUpdate; 
 
 	public String getAppName() {
 		return appName;
@@ -122,18 +120,19 @@ public class AppDownloadInfo {
     }
 
 	public boolean isInstalled(Context context) {
-		if (!isInstalled&&packageName!=null) {
+		boolean isInstalled = false;
+		if (packageName!=null) {
 			isInstalled = AppManager.isAppInstalled(context, packageName);
 		}
 		return isInstalled;
 	}
-
-	public void setInstalled(boolean isInstalled) {
-		this.isInstalled = isInstalled;
+	public boolean isDownloaded(){
+		return downloadInfo.getFile().exists()&&downloadInfo.getProgress()==100;
 	}
 
 	public boolean isNeedUpdate(Context context) {
-		if (!isNeedUpdate) {
+		boolean isNeedUpdate = false;
+		if (packageName!=null) {
 			int vCode = AppManager.getVersionCode(context, packageName); 
 			isNeedUpdate = vCode!=-1&&vCode<getVersionCode();
 		}

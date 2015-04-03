@@ -41,15 +41,21 @@ public class DownloadListFragment extends Piece<DownloadListPageAdapter> {
 		if (items.get(position).isInstalled(getActivity())&&!items.get(position).isNeedUpdate(getActivity())) {
 			AppManager.openApp(getActivity(), items.get(position).getPackageName());
 		}else{
-			if (dinfo.getProgress()==100) {
+			if (items.get(position).isDownloaded()) {
 				AppManager.installApp(getActivity(), dinfo.getFile());
 			}else{
 				if (downloadService!=null&&!dinfo.isEmpty()) {
 					DownloadTask dt = downloadService.createDownloadTask(items.get(position), null);
 					if (dt!=null) {
-						dt.start(getActivity());
-						v.setVisibility(View.INVISIBLE);
-						Toast.makeText(getActivity(), dinfo.toString(), 0).show();
+						if (dt.isRunning()) {
+							dt.stop();
+							((Button)v).setText("继续");
+							Toast.makeText(getActivity(), dinfo.toString(), 0).show();
+						}else{
+							dt.start(getActivity());
+							((Button)v).setText("暂停");
+							Toast.makeText(getActivity(), dinfo.toString(), 0).show();
+						}
 					}
 				}
 			}
@@ -85,16 +91,25 @@ public class DownloadListFragment extends Piece<DownloadListPageAdapter> {
 				}else{
 					vh = (ViewHolder) view.getTag();
 				}
+				//START update view
 				if(vh!=null){
 					vh.position = position;
 					AppDownloadInfo info = getItem(position);
-					int progress = info.getDownloadInfo().getProgress();
 					DownloadInfo dif = info.getDownloadInfo();
 					if (downloadService!=null) {
+						
+						DownloadTask dt = downloadService.getDownloadTask(dif.getUrl());
+						if (!info.isDownloaded()) {//如果之前下载过，但文件已经不存在，删除之前保存这下载任务以防止自动重新下载
+							if(dt!=null&&!dt.isRunning()){
+								dif.reset();
+							}
+						}
+						
+						int progress = dif.getProgress();
 						vh.pb.setProgress(progress);
-						DownloadTask dt = downloadService.getDownloadTask(info.getDownloadInfo().getUrl());
 						if (dt!=null&&dt.isRunning()) {
-							vh.btn.setVisibility(View.INVISIBLE);
+							vh.btn.setVisibility(View.VISIBLE);
+							vh.btn.setText("暂停");
 							int bytesWritten = dif.getBytesWritten(); 
 							int totalSize = dif.getTotalSize();
 							int bytesPerSec = dif.getBytesPerSec(); 
@@ -118,11 +133,12 @@ public class DownloadListFragment extends Piece<DownloadListPageAdapter> {
 							if (info.isInstalled(getActivity())) {
 								if (info.isNeedUpdate(getContext())) {
 									vh.btn.setText("更新");
+									//info.getDownloadInfo().getFile().delete();
 								}else{
 									vh.btn.setText("打开");
 								}
 							}else{
-								if (progress==100) {
+								if (info.isDownloaded()) {
 									vh.btn.setText("安装");
 								}else{
 									if (progress>0) {
@@ -135,6 +151,7 @@ public class DownloadListFragment extends Piece<DownloadListPageAdapter> {
 						}
 					}
 				}
+				//END update view
 				return view;
 			}
 			class ViewHolder {
@@ -178,17 +195,23 @@ public class DownloadListFragment extends Piece<DownloadListPageAdapter> {
 		//做假数据
 		for (int i = 0; i < 10; i++) {
 			AppDownloadInfo info = null;
-			String url = "http://gdown.baidu.com/data/wisegame/6d1bab87db9d5a30/weixin_542.apk?i="+i;
+			//随便从百度手机助手中找一下链接
+			String url = 
+//			"http://gdown.baidu.com/data/wisegame/5e5c80683700e405/zhangshangyingxionglianmeng_676.apk?i="+i;
+			"http://gdown.baidu.com/data/wisegame/37efc4df94c6f493/tianlongbabu3D_111601.apk?i="+i;
 			String packageName = "cn.way.wandroid"+i;
 			int versionCode = i;
 			if (i==2) {
 				packageName = "com.yaoji.yaoprize";
 				versionCode = 15;
 			}
+			if (i==0) {
+//				packageName = "com.tencent.qt.qtl";
+				packageName = "com.cyou.cx.mtlbb.baidu";
+			}
 			if (data.containsKey(packageName)) {
 				info = data.get(packageName);
 				info.setVersionCode(versionCode);
-				info.setInstalled(false);//重新设置状态，因为这个状态每次都根据本地数据来更新
 				if (!info.getDownloadInfo().getFile().exists()) {//如果文件不存在则重置下载进度
 					info.getDownloadInfo().reset();
 				}
@@ -198,7 +221,7 @@ public class DownloadListFragment extends Piece<DownloadListPageAdapter> {
 				
 			}else{
 				info = new AppDownloadInfo();
-				DownloadInfo dinfo = new DownloadInfo(url,createFile(url));
+				DownloadInfo dinfo = new DownloadInfo(url,createFile(packageName));
 				info.setDownloadInfo(dinfo);
 				info.setPackageName(packageName);
 				info.setVersionCode(versionCode);
@@ -207,8 +230,8 @@ public class DownloadListFragment extends Piece<DownloadListPageAdapter> {
 			items.add(info);
 		}
 	}
-	private File createFile(String path){
-		return new File(getActivity().getExternalCacheDir(), path.charAt(path.length()-1)+".apk");
+	private File createFile(String packageName){
+		return new File(getActivity().getExternalCacheDir(), packageName.replace(".", "_")+".apk");
 	}
 	
 	private void toast(String text){

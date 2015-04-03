@@ -10,6 +10,7 @@
 
     <!-- 网络连接 -->
     <uses-permission android:name="android.permission.INTERNET" />
+	<!-- 监听网络状态 -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <!-- 写存储卡 -->
@@ -33,19 +34,19 @@
         </activity>
 
         <service android:name="cn.way.appmanager.DownloadService" />
-
+<!-- 可以动态添加 也可以像下面这样注册到应用中-->
         <receiver
-            android:name="cn.way.appmanager.DownloadService$PackageBroadcastReceiver"
+            android:name="cn.way.appmanager.DownloadService$PackageStateReceiver"
             android:enabled="true" >
             <intent-filter>
                 <action android:name="android.intent.action.PACKAGE_ADDED" >
                 </action>
-                <!-- <action android:name="android.intent.action.PACKAGE_CHANGED"></action> -->
+                <action android:name="android.intent.action.PACKAGE_CHANGED"></action>
                 <action android:name="android.intent.action.PACKAGE_REMOVED" >
                 </action>
                 <action android:name="android.intent.action.PACKAGE_REPLACED" >
                 </action>
-                <!-- <action android:name="android.intent.action.PACKAGE_RESTARTED"></action> -->
+                <action android:name="android.intent.action.PACKAGE_RESTARTED"></action>
                 <data android:scheme="package" >
                 </data>
             </intent-filter>

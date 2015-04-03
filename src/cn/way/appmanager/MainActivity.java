@@ -19,6 +19,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import cn.way.appmanager.DownloadService.DownloadBroadcastReceiver;
 import cn.way.appmanager.DownloadService.DownloadServiceConnection;
+import cn.way.appmanager.DownloadService.PackageStateReceiver;
 import cn.way.appmanager.DownloadTask.DownloadInfo;
 import cn.way.appmanager.DownloadTask.Listener;
 import cn.way.appmanager.usage.DownloadListPageAdapter;
@@ -51,11 +52,12 @@ public class MainActivity extends Activity {
 //			downloadService.createDownloadTask(info, null).start(getApplicationContext());
 		}
 	};
-
+//	private PackageStateReceiver packageReceiver = new PackageStateReceiver();
 	private Button controlBtn;
 	@Override
 	protected void onStart() {
 		super.onStart();
+//		packageReceiver.register(this);
 	}
 	@Override
 	protected void onResume() {
@@ -67,16 +69,17 @@ public class MainActivity extends Activity {
 	protected void onPause() {
 		super.onPause();
 		unbindService(dConn);
+		DownloadService.unregisterReceiver(this, receiver);
 	}
 	@Override
 	protected void onStop() {
 		super.onStop();
 		stopDownload();
+//		packageReceiver.unregister(this);
 	}
 	@Override
 	protected void onDestroy() {
 		super.onDestroy();
-		DownloadService.unregisterReceiver(this, receiver);
 		DownloadService.stop(this);
 	}
 	@Override
@@ -180,7 +183,7 @@ public class MainActivity extends Activity {
 				public void onFinish(int statusCode, Header[] headers,
 						File response, boolean success, Throwable throwable) {
 					controlBtn.setText("START");
-					if (!success) {
+					if (!success&&throwable!=null) {
 						WLog.d("DOWNLOAD-FAILURE:"+throwable.getLocalizedMessage());
 					}
 				}
