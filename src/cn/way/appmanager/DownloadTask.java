@@ -133,6 +133,7 @@ public class DownloadTask {
 		if (requestHandle!=null) {
 			return false;
 		}
+		isPaused = false;
 //		client.setMaxRetriesAndTimeout(500, 3*1000);
 		mDownloadInfo.startTime = System.currentTimeMillis()/1000;
 		requestHandle = client.get(context,mDownloadInfo.url, new RangeFileAsyncHttpResponseHandler(mDownloadInfo.file) {
@@ -200,12 +201,17 @@ public class DownloadTask {
 		WLog.d("=====a task started=====");
 		return true;
 	}
+	private boolean isPaused;
+	public boolean isPaused(){
+		return isPaused;
+	}
 	public boolean stop(){
 		WLog.d("=====a task stoped=====");
 		if(requestHandle!=null){
 			if(requestHandle.cancel(true)){
 				mListener.onFinish(0, null, null, false, null);
 				reset(false);//这里不能清空下载信息。因为DownloadService会做保存操作
+				isPaused = true;
 				return true;
 			}
 		}

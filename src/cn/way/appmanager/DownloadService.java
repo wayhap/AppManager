@@ -239,7 +239,8 @@ public class DownloadService extends Service {
 			if (actionName.equals(Intent.ACTION_PACKAGE_ADDED)
 //					||actionName.equals(Intent.ACTION_PACKAGE_REPLACED)
 							) {
-				if (data.containsKey(packageName)) {
+				HashMap<String, AppDownloadInfo> data = AppDownloadInfoPersister.defaultInstance(context).readAll();
+				if (data!=null&&data.containsKey(packageName)) {
 					File file = data.get(packageName).getDownloadInfo().getFile();
 					WLog.d("PACKAGE:::::delete : "+file);
 					if(!file.delete()){

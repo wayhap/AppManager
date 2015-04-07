@@ -13,7 +13,6 @@ import android.widget.Button;
 import android.widget.GridView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.Toast;
 import cn.way.appmanager.AppDownloadInfo;
 import cn.way.appmanager.AppManager;
 import cn.way.appmanager.DownloadService;
@@ -50,11 +49,9 @@ public class DownloadListFragment extends Piece<DownloadListPageAdapter> {
 						if (dt.isRunning()) {
 							dt.stop();
 							((Button)v).setText("继续");
-							Toast.makeText(getActivity(), dinfo.toString(), 0).show();
 						}else{
 							dt.start(getActivity());
 							((Button)v).setText("暂停");
-							Toast.makeText(getActivity(), dinfo.toString(), 0).show();
 						}
 					}
 				}
@@ -99,7 +96,7 @@ public class DownloadListFragment extends Piece<DownloadListPageAdapter> {
 					if (downloadService!=null) {
 						
 						DownloadTask dt = downloadService.getDownloadTask(dif.getUrl());
-						if (!info.isDownloaded()) {//如果之前下载过，但文件已经不存在，删除之前保存这下载任务以防止自动重新下载
+						if (!info.isDownloaded()&&!info.getDownloadInfo().getFile().exists()) {//如果之前下载过，但文件已经不存在，删除之前保存这下载任务以防止自动重新下载
 							if(dt!=null&&!dt.isRunning()){
 								dif.reset();
 							}
@@ -107,9 +104,13 @@ public class DownloadListFragment extends Piece<DownloadListPageAdapter> {
 						
 						int progress = dif.getProgress();
 						vh.pb.setProgress(progress);
-						if (dt!=null&&dt.isRunning()) {
+						if ((dt!=null&&dt.isRunning())||(dt!=null&&dt.isPaused())) {
 							vh.btn.setVisibility(View.VISIBLE);
-							vh.btn.setText("暂停");
+							if(dt!=null&&dt.isRunning()){
+								vh.btn.setText("暂停");
+							}else{
+								vh.btn.setText("继续");
+							}
 							int bytesWritten = dif.getBytesWritten(); 
 							int totalSize = dif.getTotalSize();
 							int bytesPerSec = dif.getBytesPerSec(); 
