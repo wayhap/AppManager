@@ -4,6 +4,8 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import org.apache.http.Header;
+
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -20,10 +22,14 @@ import cn.way.appmanager.DownloadService.DownloadBroadcastReceiver;
 import cn.way.appmanager.DownloadService.DownloadServiceConnection;
 import cn.way.appmanager.DownloadTask;
 import cn.way.appmanager.DownloadTask.DownloadInfo;
+import cn.way.appmanager.OtherUtils;
 import cn.way.appmanager.R;
 import cn.way.wandroid.activityadapter.Piece;
 import cn.way.wandroid.toast.Toaster;
 import cn.way.wandroid.utils.WLog;
+
+import com.loopj.android.http.AsyncHttpClient;
+import com.loopj.android.http.FileAsyncHttpResponseHandler;
 
 /**
  * @author Wayne
@@ -192,6 +198,70 @@ public class DownloadListFragment extends Piece<DownloadListPageAdapter> {
 		loadApps();
 	}
 	private void loadApps(){
+		
+//		HttpUtils http = new HttpUtils();
+//		HttpHandler handler = http.download("http://www.91yaojiang.com/getLastest.aspx?c=55&d=a",
+//		    "/sdcard/file",
+//		    true, // 如果目标文件存在，接着未完成的部分继续下载。服务器不支持RANGE时将从新下载。
+//		    true, // 如果从请求返回信息中获取到文件名，下载完成后自动重命名。
+//		    new RequestCallBack<File>() {
+//
+//		        @Override
+//		        public void onStart() {
+//		           
+//		        }
+//
+//		        @Override
+//		        public void onLoading(long total, long current, boolean isUploading) {
+//		           
+//		        }
+//
+//		        @Override
+//		        public void onSuccess(ResponseInfo<File> responseInfo) {
+//		        	WLog.d("HttpUtilssssssssssssononSuccess");
+//		        }
+//
+//
+//		        @Override
+//		        public void onFailure(HttpException error, String msg) {
+//		        	WLog.d("HttpUtilssssssssssssonFailure");
+//		        }
+//		});
+		
+		AsyncHttpClient client = 
+		new AsyncHttpClient();
+//		client.setEnableRedirects(true);
+//		client.setURLEncodingEnabled(false);
+		client.setUserAgent(OtherUtils.getUserAgent(getActivity()));
+//		client.setRedirectHandler(new DefaultRedirectHandler());
+//		client.get("http://www.91yaojiang.com/getLastest.aspx?c=55&d=a", new TextHttpResponseHandler() {
+//
+//			@Override
+//			public void onFailure(int statusCode, Header[] headers,
+//					String responseString, Throwable throwable) {
+//				WLog.d("sssssssssssonFailure");
+//				
+//			}
+//
+//			@Override
+//			public void onSuccess(int statusCode, Header[] headers,
+//					String responseString) {
+//				WLog.d("sssssssssssonSuccess");
+//				
+//			}
+//			
+//		});
+		client.get("http://www.91yaojiang.com/getLastest.aspx?c=55&d=a", new FileAsyncHttpResponseHandler(getActivity()) {
+			@Override
+			public void onSuccess(int arg0, Header[] arg1, File arg2) {
+				WLog.d("sssssssssss");
+			}
+			
+			@Override
+			public void onFailure(int arg0, Header[] arg1, Throwable arg2, File arg3) {
+				WLog.d("onFailuresssssssssss"+arg2.getLocalizedMessage());
+			}
+		});
 		HashMap<String, AppDownloadInfo> data = DownloadService.readDownloadInofs(getActivity());
 		//做假数据
 		for (int i = 0; i < 10; i++) {
@@ -199,7 +269,9 @@ public class DownloadListFragment extends Piece<DownloadListPageAdapter> {
 			//随便从百度手机助手中找一下链接
 			String url = 
 //			"http://gdown.baidu.com/data/wisegame/5e5c80683700e405/zhangshangyingxionglianmeng_676.apk?i="+i;
-			"http://gdown.baidu.com/data/wisegame/37efc4df94c6f493/tianlongbabu3D_111601.apk?i="+i;
+//			"http://gdown.baidu.com/data/wisegame/37efc4df94c6f493/tianlongbabu3D_111601.apk?i="+i;
+//			"http://gameupdate.91yaojiang.com/ddz/yj/yjddz.apk";
+			"http://www.91yaojiang.com/getLastest.aspx?c=55&d=a";
 			String packageName = "cn.way.wandroid"+i;
 			int versionCode = i;
 			if (i==2) {
@@ -240,15 +312,17 @@ public class DownloadListFragment extends Piece<DownloadListPageAdapter> {
 	}
 	
 	@Override
-	public void onResume() {
-		super.onResume();
+	public void onStart() {
+		super.onStart();
+		WLog.d("###onStart");
 		DownloadService.bind(getActivity(), serviceConnection);
 		DownloadService.registerReceiver(getActivity(), receiver);
 		updateView();
 	}
 	@Override
-	public void onPause() {
-		super.onPause();
+	public void onStop() {
+		super.onStop();
+		WLog.d("###onStop");
 		DownloadService.unbind(getActivity(), serviceConnection);
 		DownloadService.unregisterReceiver(getActivity(), receiver);
 	}

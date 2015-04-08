@@ -10,6 +10,10 @@ import org.json.JSONArray;
 import org.json.JSONException;
 
 import android.app.Activity;
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -19,7 +23,6 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import cn.way.appmanager.DownloadService.DownloadBroadcastReceiver;
 import cn.way.appmanager.DownloadService.DownloadServiceConnection;
-import cn.way.appmanager.DownloadService.PackageStateReceiver;
 import cn.way.appmanager.DownloadTask.DownloadInfo;
 import cn.way.appmanager.DownloadTask.Listener;
 import cn.way.appmanager.usage.DownloadListPageAdapter;
@@ -262,7 +265,26 @@ public class MainActivity extends Activity {
 //		}
 		sync();
 	}
-	
+	//在通知栏显示下载进度
+	private NotificationManager notificationManager;
+	private Notification notification;
+	private void showDownLoadNotice() {
+		// 下载过程中点击通知栏回到程序
+		Intent noticeIntent = new Intent(this, MainActivity.class);
+		noticeIntent.setAction(Intent.ACTION_MAIN);
+		noticeIntent.addCategory(Intent.CATEGORY_LAUNCHER);
+		PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, noticeIntent, 0);
+		// 设置通知的显示内容
+		notification.icon = R.drawable.ic_launcher;
+		try {
+			notification.tickerText = "姚奖"+AppManager.getVersionName(this,getPackageName());
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+//		notification.contentView = new RemoteViews(MainActivity.this.getPackageName(), R.layout.app_update_notice);
+		notification.contentIntent = pendingIntent;
+		notificationManager.notify(0, notification);
+	}
 	class SigninPrize {
 		int ID;
 		int DayNum;
