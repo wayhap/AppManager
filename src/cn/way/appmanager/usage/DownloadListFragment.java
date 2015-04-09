@@ -4,8 +4,6 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import org.apache.http.Header;
-
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -22,14 +20,10 @@ import cn.way.appmanager.DownloadService.DownloadBroadcastReceiver;
 import cn.way.appmanager.DownloadService.DownloadServiceConnection;
 import cn.way.appmanager.DownloadTask;
 import cn.way.appmanager.DownloadTask.DownloadInfo;
-import cn.way.appmanager.OtherUtils;
 import cn.way.appmanager.R;
 import cn.way.wandroid.activityadapter.Piece;
 import cn.way.wandroid.toast.Toaster;
 import cn.way.wandroid.utils.WLog;
-
-import com.loopj.android.http.AsyncHttpClient;
-import com.loopj.android.http.FileAsyncHttpResponseHandler;
 
 /**
  * @author Wayne
@@ -228,11 +222,11 @@ public class DownloadListFragment extends Piece<DownloadListPageAdapter> {
 //		        }
 //		});
 		
-		AsyncHttpClient client = 
-		new AsyncHttpClient();
+//		AsyncHttpClient client = 
+//		new AsyncHttpClient();
 //		client.setEnableRedirects(true);
 //		client.setURLEncodingEnabled(false);
-		client.setUserAgent(OtherUtils.getUserAgent(getActivity()));
+//		client.setUserAgent(OtherUtils.getUserAgent(getActivity()));
 //		client.setRedirectHandler(new DefaultRedirectHandler());
 //		client.get("http://www.91yaojiang.com/getLastest.aspx?c=55&d=a", new TextHttpResponseHandler() {
 //
@@ -251,17 +245,17 @@ public class DownloadListFragment extends Piece<DownloadListPageAdapter> {
 //			}
 //			
 //		});
-		client.get("http://www.91yaojiang.com/getLastest.aspx?c=55&d=a", new FileAsyncHttpResponseHandler(getActivity()) {
-			@Override
-			public void onSuccess(int arg0, Header[] arg1, File arg2) {
-				WLog.d("sssssssssss");
-			}
-			
-			@Override
-			public void onFailure(int arg0, Header[] arg1, Throwable arg2, File arg3) {
-				WLog.d("onFailuresssssssssss"+arg2.getLocalizedMessage());
-			}
-		});
+//		client.get("http://www.91yaojiang.com/getLastest.aspx?c=55&d=a", new FileAsyncHttpResponseHandler(getActivity()) {
+//			@Override
+//			public void onSuccess(int arg0, Header[] arg1, File arg2) {
+//				WLog.d("sssssssssss");
+//			}
+//			
+//			@Override
+//			public void onFailure(int arg0, Header[] arg1, Throwable arg2, File arg3) {
+//				WLog.d("onFailuresssssssssss"+arg2.getLocalizedMessage());
+//			}
+//		});
 		HashMap<String, AppDownloadInfo> data = DownloadService.readDownloadInofs(getActivity());
 		//做假数据
 		for (int i = 0; i < 10; i++) {
@@ -271,7 +265,7 @@ public class DownloadListFragment extends Piece<DownloadListPageAdapter> {
 //			"http://gdown.baidu.com/data/wisegame/5e5c80683700e405/zhangshangyingxionglianmeng_676.apk?i="+i;
 //			"http://gdown.baidu.com/data/wisegame/37efc4df94c6f493/tianlongbabu3D_111601.apk?i="+i;
 //			"http://gameupdate.91yaojiang.com/ddz/yj/yjddz.apk";
-			"http://www.91yaojiang.com/getLastest.aspx?c=55&d=a";
+			"http://www.91yaojiang.com/getLastest.aspx?c=55&d=a&i="+i;
 			String packageName = "cn.way.wandroid"+i;
 			int versionCode = i;
 			if (i==2) {
@@ -283,6 +277,8 @@ public class DownloadListFragment extends Piece<DownloadListPageAdapter> {
 				packageName = "com.cyou.cx.mtlbb.baidu";
 			}
 			if (data.containsKey(packageName)) {
+				//TODO 遇到了一个奇怪现象就是如果读取旧的数据中的File时下载失败，提示找不到文件，如果重新创建一个文件就行
+				//createFile(packageName);只要调用一下就不报错了@_@
 				info = data.get(packageName);
 				info.setVersionCode(versionCode);
 				if (!info.getDownloadInfo().getFile().exists()) {//如果文件不存在则重置下载进度

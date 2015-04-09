@@ -136,7 +136,10 @@ public class DownloadTask {
 		isPaused = false;
 //		client.setMaxRetriesAndTimeout(500, 3*1000);
 		mDownloadInfo.startTime = System.currentTimeMillis()/1000;
-		client.setUserAgent(OtherUtils.getUserAgent(context));
+		if(requestHandle==null){
+			client.setUserAgent(OtherUtils.getUserAgent(null));
+			client.setEnableRedirects(true);
+		}
 		requestHandle = client.get(context,mDownloadInfo.url.trim().replace("\r", "").replace("\n", "").replace("\r\n", ""), new RangeFileAsyncHttpResponseHandler(mDownloadInfo.file) {
 			@Override
 			public void onFinish() {
