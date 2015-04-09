@@ -70,7 +70,7 @@ public class DownloadService extends Service {
 				@Override
 				protected void onTimeGoesBy(long totalTimeLength) {
 					if (!getDownloadTasks().isEmpty()) {
-						WLog.d(className +"=====broadcastUpdate=====");
+//						WLog.d(className +"=====broadcastUpdate=====");
 						DownloadService.broadcastUpdate(getApplicationContext(),null);
 						if (!downloadTasks.isEmpty()&&autoRetry) {
 							Iterator<DownloadTask> tasksIterator = downloadTasks.values().iterator();
@@ -283,7 +283,7 @@ public class DownloadService extends Service {
 		DownloadInfo downloadInfo = appDownloadInfo==null?null:appDownloadInfo.getDownloadInfo();
 		if (appDownloadInfo==null||downloadInfo.isEmpty()) {
 			if (l!=null) {
-				l.onFinish(-1, null,null,false,new Throwable("参数URL和File不能为空"));
+				l.onFailure(-1,null,new Throwable("参数URL和File不能为空"),null);
 				return null;
 			}
 		}
@@ -301,12 +301,25 @@ public class DownloadService extends Service {
 				}
 			}
 			@Override
-			public void onFinish(int statusCode, Header[] headers,
-					File response, boolean success, Throwable throwable) {
-				if (listener!=null) {
-					listener.onFinish(statusCode, headers, response, success, throwable);
-				}
+			public void onFinish() {
 				WLog.d("=====###DownloadTask Finished###====="+path);
+				if (listener!=null) {
+					listener.onFinish();
+				}
+			}
+			@Override
+			public void onSuccess(int statusCode, Header[] headers,
+					File response) {
+				if (listener!=null) {
+					listener.onSuccess(statusCode, headers, response);
+				}
+			}
+			@Override
+			public void onFailure(int statusCode, Header[] headers,
+					Throwable throwable, File file) {
+				if (listener!=null) {
+					listener.onFailure(statusCode, headers, throwable,file);
+				}
 			}
 		});
 		//在下载任务和data中添加相同的引用但KEY不一样。任务以URL作为KEY，应用MAP以包名作为KEY

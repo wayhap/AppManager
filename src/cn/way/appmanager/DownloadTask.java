@@ -25,6 +25,10 @@ public class DownloadTask {
 		private static final long serialVersionUID = 8045432926925125466L;
 		private String url;//下载地址
 		private File file;//文件保存的路径
+		public void setFile(File file) {
+			this.file = file;
+		}
+
 		private int 
 		bytesWritten1SecAgo,//一秒前已经下载的字节数
 		bytesWritten,//已经下载的字节数
@@ -111,10 +115,24 @@ public class DownloadTask {
 		}
 
 		@Override
-		public void onFinish(int statusCode, Header[] headers, File response,
-				boolean success, Throwable throwable) {
+		public void onFinish() {
 			if (l!=null) {
-				l.onFinish(statusCode, headers, response, success, throwable);
+				l.onFinish();
+			}
+		}
+
+		@Override
+		public void onSuccess(int statusCode, Header[] headers, File response) {
+			if (l!=null) {
+				l.onSuccess(statusCode, headers, response);
+			}
+		}
+
+		@Override
+		public void onFailure(int statusCode, Header[] headers,
+				Throwable throwable, File file) {
+			if (l!=null) {
+				l.onFailure(statusCode, headers, throwable, file);
 			}
 		}
 	};
@@ -136,16 +154,15 @@ public class DownloadTask {
 		isPaused = false;
 //		client.setMaxRetriesAndTimeout(500, 3*1000);
 		mDownloadInfo.startTime = System.currentTimeMillis()/1000;
-		if(requestHandle==null){
-			client.setUserAgent(OtherUtils.getUserAgent(null));
-			client.setEnableRedirects(true);
-		}
+		client.setUserAgent(OtherUtils.getUserAgent(null));
+		client.setEnableRedirects(true);
+		WLog.d("######start download:"+mDownloadInfo);
 		requestHandle = client.get(context,mDownloadInfo.url.trim().replace("\r", "").replace("\n", "").replace("\r\n", ""), new RangeFileAsyncHttpResponseHandler(mDownloadInfo.file) {
 			@Override
 			public void onFinish() {
 				super.onFinish();
 				mListener.onProgress(mDownloadInfo.bytesWritten, mDownloadInfo.totalSize, mDownloadInfo.progress, mDownloadInfo.bytesPerSec, mDownloadInfo.duration);
-				mListener.onFinish(0, null, null, false, null);
+				mListener.onFinish();
 				requestHandle = null;
 			}
 			@Override
@@ -171,7 +188,7 @@ public class DownloadTask {
 			
 		    @Override
 		    public void onSuccess(int statusCode, Header[] headers, File response) {
-		    	mListener.onFinish(statusCode, headers,response,true,null);
+		    	mListener.onSuccess(statusCode, headers,response);
 //		    	for (Header h : headers) {
 //					WLog.d("###"+ h.getName()+" = "+h.getValue());
 //				}
@@ -184,8 +201,8 @@ public class DownloadTask {
 			@Override
 			public void onFailure(int statusCode, Header[] headers,
 					Throwable throwable, File file) {
-				mListener.onFinish(statusCode, headers,file,false,throwable);
-				WLog.d("DownloadTask FAILURE:"+throwable.getLocalizedMessage());
+				mListener.onFailure(statusCode, headers,throwable,file);
+				WLog.d("DownloadTask FAILURE:"+statusCode+":"+throwable);
 			}
 			@Override
 			public void onPreProcessResponse(ResponseHandlerInterface instance,
@@ -213,7 +230,7 @@ public class DownloadTask {
 		WLog.d("=====a task stoped=====");
 		if(requestHandle!=null){
 			if(requestHandle.cancel(true)){
-				mListener.onFinish(0, null, null, false, null);
+				mListener.onFinish();
 				reset(false);//这里不能清空下载信息。因为DownloadService会做保存操作
 				isPaused = true;
 				return true;
@@ -232,7 +249,10 @@ public class DownloadTask {
 	}
 	public interface Listener{
 		void onProgress(int bytesWritten,int totalSize,int progress,int bytesPerSec,int duration);
-		void onFinish(int statusCode, Header[] headers, File response, boolean success, Throwable throwable);
+		void onFinish();
+		void onSuccess(int statusCode, Header[] headers, File response);
+		void onFailure(int statusCode, Header[] headers,
+				Throwable throwable, File file);
 	}
 	
 }

@@ -183,11 +183,19 @@ public class MainActivity extends Activity {
 					pb.setProgress(progress);
 				}
 				@Override
-				public void onFinish(int statusCode, Header[] headers,
-						File response, boolean success, Throwable throwable) {
+				public void onFinish() {
 					controlBtn.setText("START");
-					if (!success&&throwable!=null) {
-						WLog.d("DOWNLOAD-FAILURE:"+throwable.getLocalizedMessage());
+				}
+		
+				@Override
+				public void onSuccess(int statusCode, Header[] headers,
+						File response) {
+				}
+				@Override
+				public void onFailure(int statusCode, Header[] headers,
+						Throwable throwable, File file) {
+					if (throwable!=null) {
+						WLog.d("DOWNLOAD-FAILURE:"+throwable);
 					}
 				}
 			});
