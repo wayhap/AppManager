@@ -235,7 +235,8 @@ public class DownloadService extends Service {
 			String actionName = intent.getAction();
 			String packageName = intent.getData().getSchemeSpecificPart();
 			String versionName = AppManager.getVersionName(context, packageName);
-			WLog.d(String.format("PACKAGE:::::ActionName:%s  PackageName:%s  VersionName:%s",actionName,packageName,versionName));
+			int versionCode = AppManager.getVersionCode(context, packageName);
+			WLog.d(String.format("PACKAGE:::::ActionName:%s  PackageName:%s  VersionName:%s VersionCode:%d",actionName,packageName,versionName,versionCode));
 			if (actionName.equals(Intent.ACTION_PACKAGE_ADDED)
 //					||actionName.equals(Intent.ACTION_PACKAGE_REPLACED)
 							) {
