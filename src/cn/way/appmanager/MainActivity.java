@@ -188,7 +188,7 @@ public class MainActivity extends Activity {
 				}
 		
 				@Override
-				public void onSuccess(int statusCode, Header[] headers,
+				public void onSuccess(DownloadTask dt,int statusCode, Header[] headers,
 						File response) {
 				}
 				@Override

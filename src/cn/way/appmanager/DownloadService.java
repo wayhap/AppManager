@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 
 import org.apache.http.Header;
 
@@ -36,6 +37,7 @@ public class DownloadService extends Service {
 	private String className = getClass().getSimpleName();
 	private AsyncTimer timer;
 	private boolean autoRetry;
+	private boolean autoInstall;
 	@Override
 	public void onCreate() {
 		super.onCreate();
@@ -236,7 +238,7 @@ public class DownloadService extends Service {
 			String packageName = intent.getData().getSchemeSpecificPart();
 			String versionName = AppManager.getVersionName(context, packageName);
 			int versionCode = AppManager.getVersionCode(context, packageName);
-			WLog.d(String.format("PACKAGE:::::ActionName:%s  PackageName:%s  VersionName:%s VersionCode:%d",actionName,packageName,versionName,versionCode));
+			WLog.d(String.format(Locale.getDefault(),"PACKAGE:::::ActionName:%s  PackageName:%s  VersionName:%s VersionCode:%d",actionName,packageName,versionName,versionCode));
 			if (actionName.equals(Intent.ACTION_PACKAGE_ADDED)
 //					||actionName.equals(Intent.ACTION_PACKAGE_REPLACED)
 							) {
@@ -309,10 +311,14 @@ public class DownloadService extends Service {
 				}
 			}
 			@Override
-			public void onSuccess(int statusCode, Header[] headers,
+			public void onSuccess(DownloadTask dt,int statusCode, Header[] headers,
 					File response) {
 				if (listener!=null) {
-					listener.onSuccess(statusCode, headers, response);
+					listener.onSuccess(dt,statusCode, headers, response);
+				}
+				WLog.d("=====###DownloadTask onSuccess###====="+path);
+				if (autoInstall) {
+					AppManager.installApp(getApplicationContext(), dt.getDownloadInfo().getFile());
 				}
 			}
 			@Override
@@ -362,5 +368,11 @@ public class DownloadService extends Service {
 	}
 	public void setAutoRetry(boolean autoRetry) {
 		this.autoRetry = autoRetry;
+	}
+	public boolean isAutoInstall() {
+		return autoInstall;
+	}
+	public void setAutoInstall(boolean autoInstall) {
+		this.autoInstall = autoInstall;
 	}
 }

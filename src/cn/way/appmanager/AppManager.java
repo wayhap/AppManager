@@ -1,11 +1,8 @@
 package cn.way.appmanager;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
-import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -65,45 +62,15 @@ public class AppManager {
 		ResolveInfo ri = apps.iterator().next();
 		return ri;
 	}
-    public static ArrayList<AppInfo> loadApplications(Context context) {
-
-        PackageManager manager = context.getPackageManager();
-
-        Intent mainIntent = new Intent(Intent.ACTION_MAIN, null);
-        mainIntent.addCategory(Intent.CATEGORY_LAUNCHER);
-
-        final List<ResolveInfo> apps = manager.queryIntentActivities(mainIntent, 0);
-        Collections.sort(apps, new ResolveInfo.DisplayNameComparator(manager));
-        
-        ArrayList<AppInfo> mApplications = null;
-        if (apps != null) {
-            final int count = apps.size();
-
-            mApplications = new ArrayList<AppInfo>(count);
-            
-            for (int i = 0; i < count; i++) {
-                AppInfo application = new AppInfo();
-                ResolveInfo info = apps.get(i);
-
-                application.setAppName(info.loadLabel(manager).toString());
-                application.setActivity(new ComponentName(
-                        info.activityInfo.applicationInfo.packageName,
-                        info.activityInfo.name),
-                        Intent.FLAG_ACTIVITY_NEW_TASK
-                        | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
-                application.setIcon(info.activityInfo.loadIcon(manager));
-                mApplications.add(application);
-            }
-        }
-        return mApplications;
-    }
-	public static void installApp(Activity parentActivity,File file){
-		if (parentActivity==null||(file==null||!file.exists())) {
+	public static void installApp(Context context,File file){
+		if (context==null||(file==null||!file.exists())) {
 			return;
 		}
-		Intent intent = new Intent(Intent.ACTION_VIEW); 
+		Intent intent = new Intent(Intent.ACTION_VIEW);
+		intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+                | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
 		intent.setDataAndType(Uri.fromFile(file), "application/vnd.android.package-archive"); 
-		parentActivity.startActivity(intent);
+		context.startActivity(intent);
 	}
 	/**
 	 * @param packageName

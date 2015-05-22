@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.Serializable;
 
 import org.apache.http.Header;
-import org.apache.http.HttpResponse;
 
 import android.content.Context;
 import cn.way.wandroid.utils.Delayer;
@@ -13,7 +12,6 @@ import cn.way.wandroid.utils.WLog;
 import com.loopj.android.http.AsyncHttpClient;
 import com.loopj.android.http.RangeFileAsyncHttpResponseHandler;
 import com.loopj.android.http.RequestHandle;
-import com.loopj.android.http.ResponseHandlerInterface;
 
 /**
  * 下载任务，一个任务对应一个URL
@@ -96,7 +94,7 @@ public class DownloadTask {
 					+ totalSize + ", progress=" + progress + ", bytesPerSec="
 					+ bytesPerSec + ", duration=" + duration + ", startTime="
 					+ startTime + "]";
-		}	
+		}
 	}
 	
 	
@@ -122,9 +120,9 @@ public class DownloadTask {
 		}
 
 		@Override
-		public void onSuccess(int statusCode, Header[] headers, File response) {
+		public void onSuccess(DownloadTask dt,int statusCode, Header[] headers, File response) {
 			if (l!=null) {
-				l.onSuccess(statusCode, headers, response);
+				l.onSuccess(dt,statusCode, headers, response);
 			}
 		}
 
@@ -188,7 +186,7 @@ public class DownloadTask {
 			
 		    @Override
 		    public void onSuccess(int statusCode, Header[] headers, File response) {
-		    	mListener.onSuccess(statusCode, headers,response);
+		    	mListener.onSuccess(DownloadTask.this,statusCode, headers,response);
 //		    	for (Header h : headers) {
 //					WLog.d("###"+ h.getName()+" = "+h.getValue());
 //				}
@@ -204,20 +202,20 @@ public class DownloadTask {
 				mListener.onFailure(statusCode, headers,throwable,file);
 				WLog.d("DownloadTask FAILURE:"+statusCode+":"+throwable);
 			}
-			@Override
-			public void onPreProcessResponse(ResponseHandlerInterface instance,
-					HttpResponse response) {
-				super.onPreProcessResponse(instance, response);
-				for (Header h : response.getAllHeaders()) {
-					WLog.d("###"+ h.getName()+" = "+h.getValue());
-				}
-//				String filename = OtherUtils.getFileNameFromHttpResponse(response);
-//				if (filename!=null) {
-//					MainActivity.this.filename = filename;
-//					Toast.makeText(getApplicationContext(), filename, 0).show();
-//					downloadedFile.renameTo(new File(getExternalCacheDir(), filename));
+//			@Override
+//			public void onPreProcessResponse(ResponseHandlerInterface instance,
+//					HttpResponse response) {
+//				super.onPreProcessResponse(instance, response);
+//				for (Header h : response.getAllHeaders()) {
+//					WLog.d("###"+ h.getName()+" = "+h.getValue());
 //				}
-			}
+////				String filename = OtherUtils.getFileNameFromHttpResponse(response);
+////				if (filename!=null) {
+////					MainActivity.this.filename = filename;
+////					Toast.makeText(getApplicationContext(), filename, 0).show();
+////					downloadedFile.renameTo(new File(getExternalCacheDir(), filename));
+////				}
+//			}
 		});
 		WLog.d("=====a task started=====");
 		return true;
@@ -250,7 +248,7 @@ public class DownloadTask {
 	public interface Listener{
 		void onProgress(int bytesWritten,int totalSize,int progress,int bytesPerSec,int duration);
 		void onFinish();
-		void onSuccess(int statusCode, Header[] headers, File response);
+		void onSuccess(DownloadTask dt,int statusCode, Header[] headers, File response);
 		void onFailure(int statusCode, Header[] headers,
 				Throwable throwable, File file);
 	}
